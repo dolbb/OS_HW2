@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+cd /usr/src/linux-2.4.18-14custom
+make bzImage
+make modules
+make modules_install
+yes | cp arch/i386/boot/bzImage /boot/vmlinuz-2.4.18-14custom
+cd /boot/
+yes | rm 2.4.18-14custom.img
+mkinitrd 2.4.18-14custom.img 2.4.18-14custom
+echo you may reboot
