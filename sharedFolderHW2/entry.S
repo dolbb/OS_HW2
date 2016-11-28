@@ -650,6 +650,10 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_sched_setaffinity)
 	.long SYMBOL_NAME(sys_sched_getaffinity)
 
+	.long SYMBOL_NAME(sys_is_short)				/* 243 OS course files */
+	.long SYMBOL_NAME(sys_short_remaining_time)	/* 244 OS course files */
+	.long SYMBOL_NAME(sys_was_short)			/* 245 OS course files */
+
 	.rept NR_syscalls-(.-sys_call_table)/4
 		.long SYMBOL_NAME(sys_ni_syscall)
 	.endr
