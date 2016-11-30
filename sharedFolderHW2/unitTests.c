@@ -13,6 +13,6 @@ int main(){
 	printf("func2 returns: %d \n",ret2);
 	printf("func3 returns: %d \n",ret3);
 
-	printf("therefore we should return 1948\nending indiana:\n");
+	printf("\ntherefore we should return 1948\nending indiana:\n");
 	return 0;
 }
