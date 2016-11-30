@@ -119,9 +119,13 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
+#define SCHED_SHORT		5				/* OS course defines */
+#define MAX_REQUESTED_TIME 		3000	/* OS course defines */
+#define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
 
 struct sched_param {
 	int sched_priority;
+	int requested_time;		/* OS course addition */
 };
 
 struct completion;
@@ -451,6 +455,14 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+
+/* OS course additions: */
+	int requestedTime;	//init time for short process.
+	int timeLeft;		/*	time left in current consumption.
+							if time > 0 the process is a short process that has that time to run.
+							if time < 0 the process is overdue and should run until time++ reaches 0.
+						*/
+	int iWasShort;		//was i a short process once? 0 = no, 1 = yes.
 };
 
 /*
@@ -556,6 +568,11 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
+    requestedTime:	0			\	/*OS course init*/
+    timeLeft:		0			\	/*OS course init*/
+    iWasShort:		0			\	/*OS course init*/
+
+    
 }
 
 
