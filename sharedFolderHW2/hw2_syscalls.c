@@ -49,11 +49,9 @@ asmlinkage int sys_short_remaining_time(pid_t PID){
 	GET_PROCESS_AND_RETURN_IF_MISSING
 
 	if(p->policy == SCHED_SHORT){
-		if(p->timeLeft > 0){
-			ret = p->timeLeft;
-		}else{
-			ret = -(p->timeleft);
-		}
+		ret = p->time_slice;
+	}else{
+		ret = -EINVAL;
 	}
 	return ret;
 }
@@ -63,8 +61,9 @@ asmlinkage int sys_was_short(pid_t PID){
 	GET_PROCESS_AND_RETURN_IF_MISSING
 
 	if(p->policy == SCHED_SHORT){
-		return -EINVAL;
+		ret = -EINVAL;
+	}else{
+		ret = iWasShort;
 	}
-
 	return p->iWasShort;
 }
