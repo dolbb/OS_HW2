@@ -2,7 +2,7 @@
 cd /mnt/hgfs/sharedFolder/
 gcc -o test unitTests.c
 yes | cp /mnt/hgfs/sharedFolder/hw2_syscalls.c /usr/src/linux-2.4.18-14custom/kernel/
-#yes | cp /mnt/hgfs/sharedFolder/sched.c /usr/src/linux-2.4.18-14custom/kernel/
-yes | cp /mnt/hgfs/sharedFolder/Makefile /usr/src/linux-2.4.18-14custom/kernel/
-#yes | cp /mnt/hgfs/sharedFolder/sched.h /usr/src/linux-2.4.18-14custom/include/linux/
-yes | cp /mnt/hgfs/sharedFolder/entry.S /usr/src/linux-2.4.18-14custom/arch/i386/kernel/
+yes | cp /mnt/hgfs/sharedFolder/sched.c /usr/src/linux-2.4.18-14custom/kernel/
+#yes | cp /mnt/hgfs/sharedFolder/Makefile /usr/src/linux-2.4.18-14custom/kernel/
+yes | cp /mnt/hgfs/sharedFolder/sched.h /usr/src/linux-2.4.18-14custom/include/linux/
+#yes | cp /mnt/hgfs/sharedFolder/entry.S /usr/src/linux-2.4.18-14custom/arch/i386/kernel/

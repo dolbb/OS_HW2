@@ -1175,10 +1175,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	
 	//check the current process for being short - OS course code:
 	if(p->policy == SCHED_SHORT){
-		if(policy != SCHED_SHORT){
-			retval = EPERM;
-			goto out_unlock;
-		}
+		if(policy == SCHED_SHORT){
+			if(lp.requested_time <= MAX_REQUESTED_TIME || lp.requested_time > requestedTime - timeslice){
+				goto change_to_short;
+			}
+			retval = -EINVAL;
+		}else{
+			retval = -EPERM;
+		}	
+		goto out_unlock;
 	}
 	
 	//check the "change to short" case - OS course code:
@@ -1189,30 +1194,29 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 			goto out_unlock;
 		}
 		//if we are here than the "p" process is on SCHED_OTHER policy.
-		
+
+		//check the requested running time validity [p->timeslice .. 3000]: 
+		if(lp.requested_time > MAX_REQUESTED_TIME || lp.requested_time < MIN_REQUESTED_TIME){
+			retval = -EINVAL;
+			goto out_unlock;
+		}
+
+		change_to_short:
 		//check permissions (if same user euid or root=0)
 		if ((current->euid != p->euid) && (current->euid != 0)){
 			retval = -EPERM;
 			goto out_unlock;
 		}
 
-		//check the requested running time validity [p->timeslice .. 3000]:
-		if(lp.requested_time > MAX_REQUESTED_TIME || lp.requested_time < p->timeslice){
-			retval = -EINVAL;
-			goto out_unlock;
-		}
-
 		//if we are here, p will become a short prio process:
+		
+
 		//==============TODO: SHIFT P TO SHORT QUEUE============
+		
+
+
 			//set new policy to p:
 			p->policy = SCHED_SHORT;
-			
-			//check if we increace\decreace the process's running time:
-			if(lp.requested_time < p->requestedTime){
-				p->timeLeft -= p->requestedTime - lp->requested_time; 
-			}else{
-				p->timeLeft += lp->requested_time - p->requestedTime;
-			}
 
 			//set the relevant fields to init the short process:
 			p->requestedTime = lp.requested_time;
