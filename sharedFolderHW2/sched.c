@@ -1176,7 +1176,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//check the current process for being short - OS course code:
 	if(p->policy == SCHED_SHORT){
 		if(policy == SCHED_SHORT){
-			if(lp.requested_time <= MAX_REQUESTED_TIME || lp.requested_time > p->requestedTime - p->time_slice){
+			if(lp.requested_time <= MAX_REQUESTED_TIME && lp.requested_time > p->requestedTime - p->time_slice){
 				goto change_to_short;
 			}
 			retval = -EINVAL;
@@ -1201,7 +1201,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 			goto out_unlock;
 		}
 
-		change_to_short:
+change_to_short:
 		//check permissions (if same user euid or root=0)
 		if ((current->euid != p->euid) && (current->euid != 0)){
 			retval = -EPERM;
