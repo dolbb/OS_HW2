@@ -40,7 +40,10 @@ asmlinkage int sys_is_short(pid_t PID){
 		if(!p->iAmOverdue){
 			ret = IS_SHORT_PROCESS;
 		}
+	}else{
+		ret = -EINVAL;
 	}
+	
 	return ret;
 }
 

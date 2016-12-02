@@ -120,7 +120,7 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_FIFO		1
 #define SCHED_RR		2
 #define SCHED_SHORT		5				/* OS course defines */
-#define MIN_REQUESTED_TIME 		1	/* OS course defines */
+#define MIN_REQUESTED_TIME 		1		/* OS course defines */
 #define MAX_REQUESTED_TIME 		3000	/* OS course defines */
 #define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
 
