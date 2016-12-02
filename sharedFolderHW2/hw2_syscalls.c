@@ -23,7 +23,6 @@
 		return -EINVAL;		/*error for invalid pid.*/				\
 	}																\
 																	\
-	task_t *p = find_process_by_pid(pid);							\
 	if(p == NULL){													\
 		return -ESRCH;		/*error for non-existing process.*/		\
 	}
@@ -37,7 +36,7 @@ asmlinkage int sys_is_short(pid_t PID){
 	GET_PROCESS_AND_RETURN_IF_MISSING
 	
 	if(p->policy == SCHED_SHORT){
-		if(!iAmOverdue){
+		if(!p->iAmOverdue){
 			ret = IS_SHORT_PROCESS;
 		}
 	}
@@ -63,7 +62,7 @@ asmlinkage int sys_was_short(pid_t PID){
 	if(p->policy == SCHED_SHORT){
 		ret = -EINVAL;
 	}else{
-		ret = iWasShort;
+		ret = p->iWasShort;
 	}
-	return p->iWasShort;
+	return ret;
 }

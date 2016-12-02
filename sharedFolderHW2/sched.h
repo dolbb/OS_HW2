@@ -566,13 +566,11 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
-    requestedTime:	0			\	/*OS course init*/
-    iAmOverdue:		0			\	/*OS course init*/
-    iWasShort:		0			\	/*OS course init*/
-
-    
+    requestedTime:	0,			\
+    iAmOverdue:		0,			\
+    iWasShort:		0,			\
 }
-
+/*OS course init*/
 
 #ifndef INIT_TASK_SIZE
 # define INIT_TASK_SIZE	2048*sizeof(long)
