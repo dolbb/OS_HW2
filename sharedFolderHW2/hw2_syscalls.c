@@ -23,6 +23,7 @@
 		return -EINVAL;		/*error for invalid pid.*/				\
 	}																\
 																	\
+	task_t *p = find_task_by_pid(PID);								\
 	if(p == NULL){													\
 		return -ESRCH;		/*error for non-existing process.*/		\
 	}
