@@ -143,7 +143,7 @@ struct runqueue {
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
-	list_t overdure_short;						/* OS course defines */
+	list_t overdure_short;						/* OS course */
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;

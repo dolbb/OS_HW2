@@ -65,11 +65,11 @@ Short receives clock interrupt:
 	update_process_times (Not important to us)
 	scheduler_tick()
 		-	verify SCHED_SHORT
-		-	check if time is up
+		-	check time_slice
 			-	case == 0 - get to "Short to overdue" phase and up the need_resched flag.
 			-	case != 0 - check the need_resched flag:
 				-	case 0: Updates time_slice--
-				-	case 1: need_resched = 0, and call schedule to switch.
+				-	case 1: need_resched = 0?, and call schedule to switch.
 
 ---------------------------------------------------------------------------
 
@@ -79,37 +79,36 @@ Overdue receives clock interrupt:
 	update_process_times (Not important to us)
 	scheduler_tick()
 		-	verify SCHED_SHORT
-		-	check if time is up
-		-	Updates sleep_avg
-		-	Updates time_slice--
-
----------------------------------------------------------------------------
-
-Short becomes TASK_(UN)INTERRUPTIBLE :
-
-	sleep_on()
-		-	Changes state to TASK_(UN)INTERRUPTIBLE
-		-	Enters to waiting list
-	schedule()
-		-	Finds next process to run
-		-	... (waits)
-		-	Removes itseld from waiting list
-	
----------------------------------------------------------------------------
-
-Overdue becomes TASK_(UN)INTERRUPTIBLE :
-
----------------------------------------------------------------------------
+		-	check time_slice
+			-	case == 0 - get to "overdue to other" phase and up the need_resched flag.
+			-	case != 0 - check the need_resched flag:
+				-	case 0: Updates time_slice--
+							Updates sleep_avg??
+				-	case 1: need_resched = 0?, and call schedule to switch.
+		
+--------------------------------------------------------------------------
 
 Short is running and another process returned from waiting:
 
 	An interrupt raises need_resched
-	
+	timer interrupt (Not important to us)
+	update_process_times (Not important to us)
+	scheduler_tick()
+	schedule()
+		-	check for first bit in active bitmap
+			-	if <100 its RT, switch and store short in active[static_prio]
+			-	if >100 check in short bitmap:
+				-	if first bit == current->static_prio - do nothing
+				-	if first bit <= current->static_prio - switch them
+
 ---------------------------------------------------------------------------
 
 Overdue is running and another process returned from waiting:
-
-	An interrupt raises need_resched
+	
+	same as above when short runs while the interupt occures.
+	now we know a switch is needed, need to just check to whom
+	-	same checks and afterwards - check in the active bitmap for anyone >100 (others) 
+	-	if nothing - check expired bitmap (expired others) since we are in a short process.
 
 ---------------------------------------------------------------------------
 
@@ -134,4 +133,23 @@ Short forks:
 Overdue forks:
 
 ---------------------------------------------------------------------------
+===========================================================================
+							NOT SURE IF NEEDED:
+===========================================================================
+---------------------------------------------------------------------------
 
+Short becomes TASK_(UN)INTERRUPTIBLE :
+
+	sleep_on()
+		-	Changes state to TASK_(UN)INTERRUPTIBLE
+		-	Enters to waiting list
+	schedule()
+		-	Finds next process to run
+		-	... (waits)
+		-	Removes itseld from waiting list
+	
+---------------------------------------------------------------------------
+
+Overdue becomes TASK_(UN)INTERRUPTIBLE :
+
+---------------------------------------------------------------------------
