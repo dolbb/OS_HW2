@@ -1,0 +1,101 @@
+1. New system calls:
+	
+	Definition of done:
+		-	Calling the specified system call will print "System call #___"
+	
+	Steps:
+		1.1	entry.S:			Add 3 values
+		1.2	hw2_syscalls.h:		Wrappers implementation
+		1.3	hw2_syscalls.c:		Empty system calls implementation (printk)
+
+---------------------------------------------------------------------------
+		
+2. Classify process as SHORT:
+	
+	Definition of done:
+		-	System calls return valid values before and after becoming short
+		-	SCHED_SHORT process still schedules as SCHED_OTHER
+	
+	Steps:
+		2.1	Add to task_struct (sched.h):
+			-	"int requested_time"
+			-	"int iAmOverdue"
+			-	"int iAmOverdue"
+			
+		2.2 Add SCHED_SHORT constants (sched.h):
+			-	"#define SCHED_SHORT 5"
+			-	"#define MAX_REQUESTED_TIME 3000"
+			-	"#define INVALID_REQUESTED_TIME 4000"
+			
+		2.3 Add to sched_param (sched.h):
+			-	"int requested_time"
+
+		2.2 sched.c:			
+			Update setscheduler (called by sched_setscheduler)
+			-	Support SCHED_SHORT
+			-	Save parameter in requestedTime
+			-	Update time_slice
+			
+		2.3 Update hw2_syscalls.c:		
+			Access and return the related fields from task struct.
+
+---------------------------------------------------------------------------
+
+3. Support new data structures for SCHED_SHORT:
+	
+	Definition of done:
+		-	Same as step 2
+	
+	Steps:
+		3.1	Add:	
+			-	sched.c		struct prio_array:	Add "unsigned long bitmap_short[BITMAP_SIZE]"
+			-	sched.c		struct runqueue:	Add "list_t overdure_short";
+			
+		3.2 Initialize:
+			-	sched.c		sched_init():		Initialize bitmap_short
+												Initialize overdure_short
+		
+		3.3 Maintain:
+			3.3.1 OTHER becomes SHORT:
+				** Need to update sleep_avg ?? If yes - use and activate_task deactivate_task
+				-	sched.c		setscheduler():		Place in correct 
+													dequeue_task()				
+													p->prio = effective_prio()
+													enqueue_task()
+				
+			3.3.2 SHORT updates it's schedparams:
+				-	Already handled in 3.3.1
+			
+			3.3.3 SHORT becomes overdue:
+				-	sched.c		scheduler_tick():	remove from "active"
+													time_slice = requested_time
+													insert to tail of overdure_short list
+			
+			3.3.4 overdue becomes OTHER:
+				-	sched.c		scheduler_tick():	move from "overdure_short" to "active"
+													p->policy = SCHED_OTHER
+			
+			3.3.5 Update helper functions:
+				-	sched.c		dequeue_task():		If SCHED_SHORT 	update bitmap_short
+				-	sched.c		enqueue_task():		If SCHED_SHORT 	update bitmap_short
+				-	sched.c		effective_prio():	If SCHED_SHORT 	p->prio = static_prio
+	
+---------------------------------------------------------------------------
+
+4. Support scheduling SCHED_SHORT:
+
+	Definition of done:	
+		 
+	Steps:
+		- sched.c	schedule()			set order of scheduling
+		- sched.c	effective_prio()	p->prio = static_prio
+		
+---------------------------------------------------------------------------
+		
+5.	Forking a SHORT process:
+
+	Definition of done:	
+
+	Steps:
+
+---------------------------------------------------------------------------
