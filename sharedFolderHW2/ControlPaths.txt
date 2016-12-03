@@ -1,0 +1,115 @@
+Control paths:
+This document describes the control paths related to SCHED_SHORT policy (call stack + desired action)
+
+---------------------------------------------------------------------------
+
+Other to Short:
+
+	sched_setscheduler		(Other_PID, SCHED_SHORT, requested_time_param)
+	sys_sched_setscheduler	(Other_PID, SCHED_SHORT, requested_time_param)
+	setscheduler			(Other_PID, SCHED_SHORT, requested_time_param)
+		-	Updates task_struct fields:	policy, requestedTime, iWasShort, prio
+		-	Moves process to active->queue[static_prio]
+		-	Updates bitmap and bitmap_short
+
+---------------------------------------------------------------------------
+
+Short to short:
+
+	sys_sched_setparam(Other_PID, SCHED_SHORT, requested_time_param)
+	setscheduler(Other_PID, -1, requested_time_param)
+		-	Verify requested_time > actual running time
+		-	The rest is same as Other to Short
+	
+---------------------------------------------------------------------------
+
+Short to overdue:
+	
+	timer interrupt (Not important to us)
+	update_process_times (Not important to us)
+	scheduler_tick()
+		-	raises need_resched (time_slice ended)
+		-	iAmOverdue = true
+		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue)
+		-	insert to "overdure_short" (instead of enqueue_task)
+
+---------------------------------------------------------------------------
+
+Overdue to Other:
+
+	timer interrupt (Not important to us)
+	update_process_times (Not important to us)
+	scheduler_tick()
+		-	raises need_resched (time_slice ended)
+		-	iAmOverdue = false
+		-	iWasShort = true (not in setscheduler)
+		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue)
+		
+		-	insert to "overdure_short" (instead of enqueue_task)
+
+---------------------------------------------------------------------------
+
+Short receives clock interrupt:
+
+---------------------------------------------------------------------------
+
+Overdue receives clock interrupt:
+
+	timer interrupt (Not important to us)
+	update_process_times (Not important to us)
+	scheduler_tick()
+		-	Updates sleep_avg
+		-	Updates time_slice
+
+---------------------------------------------------------------------------
+
+Short becomes TASK_(UN)INTERRUPTIBLE :
+
+	sleep_on()
+		-	Changes state to TASK_(UN)INTERRUPTIBLE
+		-	Enters to waiting list
+	schedule()
+		-	Finds next process to run
+		-	... (waits)
+		-	Removes itseld from waiting list
+	
+---------------------------------------------------------------------------
+
+Overdue becomes TASK_(UN)INTERRUPTIBLE :
+
+---------------------------------------------------------------------------
+
+Short is running and another process returned from waiting:
+
+	An interrupt raises need_resched
+	
+---------------------------------------------------------------------------
+
+Overdue is running and another process returned from waiting:
+
+	An interrupt raises need_resched
+
+---------------------------------------------------------------------------
+
+Short sched_yield:
+
+	sys_sched_yield()
+		__clear_bit()
+		sched_find_first_bit(array->bitmap)
+		__set_bit
+	schedule()
+
+---------------------------------------------------------------------------
+	
+Overdue sched_yield:
+	
+---------------------------------------------------------------------------
+
+Short forks:
+
+---------------------------------------------------------------------------
+
+Overdue forks:
+
+---------------------------------------------------------------------------
+

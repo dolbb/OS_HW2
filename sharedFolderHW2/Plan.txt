@@ -45,6 +45,7 @@
 	
 	Definition of done:
 		-	Same as step 2
+		-	Overdue short won't schedule
 	
 	Steps:
 		3.1	Add:	
@@ -55,32 +56,44 @@
 			-	sched.c		sched_init():		Initialize bitmap_short
 												Initialize overdure_short
 		
-		3.3 Maintain:
+		3.3 Maintain (Everything is in sched.c)
 			3.3.1 OTHER becomes SHORT:
 				** Need to update sleep_avg ?? If yes - use and activate_task deactivate_task
-				-	sched.c		setscheduler():		Place in correct 
-													dequeue_task()				
-													p->prio = effective_prio()
-													enqueue_task()
+				-	setscheduler():
+						dequeue_task()				
+						p->prio = effective_prio()
+						enqueue_task()
 				
 			3.3.2 SHORT updates it's schedparams:
 				-	Already handled in 3.3.1
 			
 			3.3.3 SHORT becomes overdue:
-				-	sched.c		scheduler_tick():	remove from "active"
-													time_slice = 2 * requested_time * HZ / 1000
-													insert to tail of "overdure_short"
+				-	scheduler_tick():	
+						remove from "active"
+						time_slice = 2 * requested_time * HZ / 1000
+						insert to tail of "overdure_short"
 			
 			3.3.4 overdue becomes OTHER:
-				-	sched.c		scheduler_tick():	move from "overdure_short" to "active"
-													p->policy = SCHED_OTHER
+				-	scheduler_tick():	move from "overdure_short" to "active"
+										p->policy = SCHED_OTHER
 			
 			3.3.5 Update helper functions:
-				-	sched.c		dequeue_task():		If SCHED_SHORT 	update bitmap_short
-				-	sched.c		enqueue_task():		If SCHED_SHORT 	update bitmap_short
-				-	sched.c		effective_prio():	If SCHED_SHORT 	p->prio = static_prio
-				-	sched.c		TASK_TIMESLICE():	If (SCHED_SHORT && iAmOverdue) return "requested_time * HZ / 1000"
-													If (SCHED_SHORT && !iAmOverdue) return "2 * requested_time * HZ / 1000"
+				-	dequeue_task():		If SCHED_SHORT update bitmap_short
+				-	enqueue_task():		If SCHED_SHORT update bitmap_short
+				-	effective_prio():	If SCHED_SHORT 	p->prio = static_prio
+				-	TASK_TIMESLICE():	If (SCHED_SHORT && iAmOverdue) return "requested_time * HZ / 1000"
+										If (SCHED_SHORT && !iAmOverdue) return "2 * requested_time * HZ / 1000"
+				
+			3.3.6 Sched_yield():
+				-	sys_sched_yield():
+						If SCHED_SHORT:	call clear_bit()+set_bit() with "bitmap_short"
+						If overdue:
+						
+			3.3.7 scheduler_tick():
+				- 	"if (p->array != rq->active)" - skip this for Overdue 
+				-	Support short->overdue, overdue->other (see ControlPaths.txt)
+				
+		*** Notice:	changing a data structure (runqueue, prio_array, task_struct...) requires locks !
 				
 ---------------------------------------------------------------------------
 
@@ -89,7 +102,7 @@
 	Definition of done:	Correct order of scheduling
 		 
 	Steps:
-		- sched.c	schedule()			set order of scheduling (rt, SCHED_SHORT, SCHED_OTHER)
+		- sched.c	sched_find_first_bit()		set order of scheduling (rt, SCHED_SHORT, SCHED_OTHER)
 		
 ---------------------------------------------------------------------------
 		
