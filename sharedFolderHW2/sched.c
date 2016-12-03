@@ -1680,15 +1680,18 @@ void __init sched_init(void)
 		rq->expired = rq->arrays + 1;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
-
+		INIT_LIST_HEAD(&rq->overdure_short);
+		
 		for (j = 0; j < 2; j++) {
 			array = rq->arrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);
 				__clear_bit(k, array->bitmap);
+				__clear_bit(k, array->bitmap_short);
 			}
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
+			__set_bit(MAX_PRIO, array->bitmap_short);
 		}
 	}
 	/*
