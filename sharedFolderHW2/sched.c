@@ -1131,6 +1131,7 @@ static inline task_t *find_process_by_pid(pid_t pid)
 
 #define IS_SHORT_PROCESS 1		//OS course define
 
+
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
 	struct sched_param lp;
@@ -1215,13 +1216,14 @@ change_to_short:
 		
 
 
-			//set new policy to p:
-			p->policy = SCHED_SHORT;
+		//set new policy to p:
+		p->policy = SCHED_SHORT;
 
-			//set the relevant fields to init the short process:
-			p->requestedTime = lp.requested_time;
-			p->iWasShort = IS_SHORT_PROCESS;
-			goto out_unlock;
+		//set the relevant fields to init the short process:
+		p->requestedTime = lp.requested_time;
+		p->iWasShort = IS_SHORT_PROCESS;
+		retval = 0;
+		goto out_unlock;
 	}
 
 	/*
