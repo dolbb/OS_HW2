@@ -8,7 +8,12 @@ Other to Short:
 	sched_setscheduler		(Other_PID, SCHED_SHORT, requested_time_param)
 	sys_sched_setscheduler	(Other_PID, SCHED_SHORT, requested_time_param)
 	setscheduler			(Other_PID, SCHED_SHORT, requested_time_param)
-		-	Updates task_struct fields:	policy, requestedTime, iWasShort, prio
+		-	Verify p is SCHED_OTHER
+		-	Verify requested_time >= 1
+		-	Verify requested_time <= MAX_SHORT_TIME
+		-	Verify user rights - current is root or same user as Other_PID
+		-	Updates task_struct fields:	policy, requestedTime, iWasShort, prio, 
+		retval
 		-	Moves process to active->queue[static_prio]
 		-	Updates bitmap and bitmap_short
 
@@ -16,11 +21,13 @@ Other to Short:
 
 Short to short:
 
-	sys_sched_setparam(Other_PID, SCHED_SHORT, requested_time_param)
-	setscheduler(Other_PID, -1, requested_time_param)
+	sys_sched_setparam(Short_PID, SCHED_SHORT, requested_time_param)
+	setscheduler(Short_PID, -1, requested_time_param)
+		-	Verify p is SCHED_SHORT
 		-	Verify requested_time > actual running time
+		-	TODO: ?? need to get to end of list in the same cell ??? 
 		-	The rest is same as Other to Short
-	
+
 ---------------------------------------------------------------------------
 
 Short to overdue:
@@ -29,9 +36,11 @@ Short to overdue:
 	update_process_times (Not important to us)
 	scheduler_tick()
 		-	raises need_resched (time_slice ended)
-		-	iAmOverdue = true
+		-	verify SCHED_SHORT
+		-	verify iAmOverdue = false = 0
+		-	update iAmOverdue = true = 1
 		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue)
-		-	insert to "overdure_short" (instead of enqueue_task)
+		-	move from queue to END of "overdue_short" (instead of enqueue_task)
 
 ---------------------------------------------------------------------------
 
@@ -40,16 +49,27 @@ Overdue to Other:
 	timer interrupt (Not important to us)
 	update_process_times (Not important to us)
 	scheduler_tick()
+		-	verify SCHED_SHORT
+		-	verify iAmOverdue = true = 1 
+		-	verify time_slice = 0
+		-	update iAmOverdue = false = 0
 		-	raises need_resched (time_slice ended)
-		-	iAmOverdue = false
-		-	iWasShort = true (not in setscheduler)
-		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue)
-		
-		-	insert to "overdure_short" (instead of enqueue_task)
+		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue??)
+		-	delete from list and move to expired (only other) queue.
 
 ---------------------------------------------------------------------------
 
 Short receives clock interrupt:
+
+	timer interrupt (Not important to us)
+	update_process_times (Not important to us)
+	scheduler_tick()
+		-	verify SCHED_SHORT
+		-	check if time is up
+			-	case == 0 - get to "Short to overdue" phase and up the need_resched flag.
+			-	case != 0 - check the need_resched flag:
+				-	case 0: Updates time_slice--
+				-	case 1: need_resched = 0, and call schedule to switch.
 
 ---------------------------------------------------------------------------
 
@@ -58,8 +78,10 @@ Overdue receives clock interrupt:
 	timer interrupt (Not important to us)
 	update_process_times (Not important to us)
 	scheduler_tick()
+		-	verify SCHED_SHORT
+		-	check if time is up
 		-	Updates sleep_avg
-		-	Updates time_slice
+		-	Updates time_slice--
 
 ---------------------------------------------------------------------------
 

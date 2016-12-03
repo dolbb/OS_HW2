@@ -1214,7 +1214,6 @@ change_to_short:
 		
 
 		//==============TODO: SHIFT P TO SHORT QUEUE============
-		
 
 
 		//set new policy to p:
