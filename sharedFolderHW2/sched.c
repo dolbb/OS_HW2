@@ -124,6 +124,7 @@ struct prio_array {
 	int nr_active;
 	unsigned long bitmap[BITMAP_SIZE];
 	list_t queue[MAX_PRIO];
+	unsigned long bitmap_short[BITMAP_SIZE];	/* OS course */
 };
 
 /*
@@ -142,6 +143,7 @@ struct runqueue {
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
+	list_t overdure_short;						/* OS course defines */
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -1130,7 +1132,6 @@ static inline task_t *find_process_by_pid(pid_t pid)
 }
 
 #define IS_SHORT_PROCESS 1		//OS course define
-
 
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
