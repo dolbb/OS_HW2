@@ -20,7 +20,7 @@
 		2.1	Add to task_struct (sched.h):
 			-	"int requested_time"
 			-	"int iAmOverdue"
-			-	"int iAmOverdue"
+			-	"int iWasShort"
 			
 		2.2 Add SCHED_SHORT constants (sched.h):
 			-	"#define SCHED_SHORT 5"
@@ -68,8 +68,8 @@
 			
 			3.3.3 SHORT becomes overdue:
 				-	sched.c		scheduler_tick():	remove from "active"
-													time_slice = requested_time
-													insert to tail of overdure_short list
+													time_slice = 2 * requested_time * HZ / 1000
+													insert to tail of "overdure_short"
 			
 			3.3.4 overdue becomes OTHER:
 				-	sched.c		scheduler_tick():	move from "overdure_short" to "active"
@@ -79,16 +79,17 @@
 				-	sched.c		dequeue_task():		If SCHED_SHORT 	update bitmap_short
 				-	sched.c		enqueue_task():		If SCHED_SHORT 	update bitmap_short
 				-	sched.c		effective_prio():	If SCHED_SHORT 	p->prio = static_prio
-	
+				-	sched.c		TASK_TIMESLICE():	If (SCHED_SHORT && iAmOverdue) return "requested_time * HZ / 1000"
+													If (SCHED_SHORT && !iAmOverdue) return "2 * requested_time * HZ / 1000"
+				
 ---------------------------------------------------------------------------
 
 4. Support scheduling SCHED_SHORT:
 
-	Definition of done:	
+	Definition of done:	Correct order of scheduling
 		 
 	Steps:
-		- sched.c	schedule()			set order of scheduling
-		- sched.c	effective_prio()	p->prio = static_prio
+		- sched.c	schedule()			set order of scheduling (rt, SCHED_SHORT, SCHED_OTHER)
 		
 ---------------------------------------------------------------------------
 		
