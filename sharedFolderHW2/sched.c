@@ -124,7 +124,6 @@ struct prio_array {
 	int nr_active;
 	unsigned long bitmap[BITMAP_SIZE];
 	list_t queue[MAX_PRIO];
-	unsigned long bitmap_short[BITMAP_SIZE];	/* OS course */
 };
 
 /*
@@ -139,11 +138,10 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, arrays[2];
+	prio_array_t *active, *expired, *rt_short, *overdue, arrays[4];	/* OS course */
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
-	list_t migration_queue;
-	list_t overdure_short;						/* OS course */
+	list_t migration_queue;		
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -1678,20 +1676,19 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
+		rq->rt_short = rq->arrays + 2;
+		rq->overdue = rq->arrays + 3;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
-		INIT_LIST_HEAD(&rq->overdure_short);
 		
-		for (j = 0; j < 2; j++) {
+		for (j = 0; j < 4 ; j++) {
 			array = rq->arrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);
 				__clear_bit(k, array->bitmap);
-				__clear_bit(k, array->bitmap_short);
 			}
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
-			__set_bit(MAX_PRIO, array->bitmap_short);
 		}
 	}
 	/*

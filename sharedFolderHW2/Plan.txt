@@ -49,12 +49,13 @@
 	
 	Steps:
 		3.1	Add data structures:	
-			-	sched.c		struct prio_array:	Add "unsigned long bitmap_short[BITMAP_SIZE]"
 			-	sched.c		struct runqueue:	Add "list_t overdure_short";
+			-	sched.c		struct runqueue:	Add "prio_array_t rt_short";
+			-	sched.c		struct runqueue:	Add "prio_array_t overdue";
 			
 		3.2 Initialize data structures:
-			-	sched.c		sched_init():		Initialize bitmap_short
-												Initialize overdure_short
+			-	sched.c		sched_init():		Initialize rt_short
+												Initialize overdue
 		
 		3.3 Maintain (Everything is in sched.c):
 		
@@ -64,7 +65,7 @@
 									dequeue_task()				
 									p->prio = effective_prio()
 									enqueue_task()
-			
+		
 		
 			-	dequeue_task():		If SCHED_SHORT update bitmap_short
 			

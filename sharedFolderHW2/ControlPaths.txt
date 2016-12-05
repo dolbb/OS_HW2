@@ -53,6 +53,7 @@ Overdue to Other:
 		-	verify iAmOverdue = true = 1 
 		-	verify time_slice = 0
 		-	update iAmOverdue = false = 0
+		-	update iWasShort = true = 1	(not in setscheduler)
 		-	raises need_resched (time_slice ended)
 		-	time_slice = TASK_TIMESLICE (AFTER! setting iAmOverdue??)
 		-	delete from list and move to expired (only other) queue.
@@ -78,6 +79,9 @@ Overdue receives clock interrupt:
 	timer interrupt (Not important to us)
 	update_process_times (Not important to us)
 	scheduler_tick()
+		-	Updates sleep_avg
+		-	Updates time_slice
+	
 		-	verify SCHED_SHORT
 		-	check time_slice
 			-	case == 0 - get to "overdue to other" phase and up the need_resched flag.
@@ -104,6 +108,8 @@ Short is running and another process returned from waiting:
 ---------------------------------------------------------------------------
 
 Overdue is running and another process returned from waiting:
+	
+	An interrupt raises need_resched
 	
 	same as above when short runs while the interupt occures.
 	now we know a switch is needed, need to just check to whom
