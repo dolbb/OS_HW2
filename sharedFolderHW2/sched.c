@@ -138,7 +138,7 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, *rt_short, *overdue, arrays[4];	/* OS course */
+	prio_array_t *active, *expired, *short_p, *overdue, arrays[4];	/* OS course */
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;		
@@ -1676,7 +1676,7 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
-		rq->rt_short = rq->arrays + 2;
+		rq->short_p = rq->arrays + 2;
 		rq->overdue = rq->arrays + 3;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);

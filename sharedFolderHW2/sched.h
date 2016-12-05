@@ -461,6 +461,7 @@ struct task_struct {
 	int requestedTime;	//init time for short process.
 	int iAmOverdue;		//0 = normal or just short, 1 = short overdue.
 	int iWasShort;		//was i a short process once? 0 = no, 1 = yes.
+	int overdue_static_prio	//the real static prio of an overdue
 };
 
 /*
@@ -566,9 +567,10 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
-    requestedTime:	0,			\
-    iAmOverdue:		0,			\
-    iWasShort:		0,			\
+    requestedTime:				0,			\
+    iAmOverdue:					0,			\
+    iWasShort:					0,			\
+    overdue_static_prio:		0,			\
 }
 /*OS course init*/
 
