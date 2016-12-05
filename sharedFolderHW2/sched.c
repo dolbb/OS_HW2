@@ -138,7 +138,7 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, *short_p, *overdue, arrays[4];	/* OS course */
+	prio_array_t *active, *expired, *rt_short, *overdue, arrays[4];	/* OS course */
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;		
@@ -842,7 +842,27 @@ pick_next_task:
 		goto switch_tasks;
 	}
 
-	array = rq->active;
+	//OS course : search for next highest prio process:
+	//if we have RT or short process:
+	idx = sched_find_first_bit(rq->rt_short->bitmap);
+	if( idx < MAX_PRIO){
+		array = rq->rt_short;		
+	//or if we have others in active:
+	}elseif(rq->active->nr_active){	
+		array = rq->active;
+	//or if we have others of any kind:
+	}elseif(sched_find_first_bit(rq->expired->bitmap)){	
+		array = rq->active;
+	}else{		//or if we have overdues:
+
+	}
+
+array = rq->active;
+
+
+
+
+	
 	if (unlikely(!array->nr_active)) {
 		/*
 		 * Switch the active and expired arrays.
@@ -1676,7 +1696,7 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
-		rq->short_p = rq->arrays + 2;
+		rq->rt_short = rq->arrays + 2;
 		rq->overdue = rq->arrays + 3;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);

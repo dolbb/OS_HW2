@@ -461,7 +461,7 @@ struct task_struct {
 	int requestedTime;	//init time for short process.
 	int iAmOverdue;		//0 = normal or just short, 1 = short overdue.
 	int iWasShort;		//was i a short process once? 0 = no, 1 = yes.
-	int overdue_static_prio	//the real static prio of an overdue
+	int overdue_static_prio;	//the real static prio of an overdue
 };
 
 /*
