@@ -801,9 +801,11 @@ asmlinkage void schedule(void)
 {
 	task_t *prev, *next;
 	runqueue_t *rq;
-	prio_array_t *array;
-	list_t *queue;
+	prio_array_t *prev_array, *next_array;
+	//list_t *queue;
+	list_t *prev_queue, *next_queue;
 	int idx;
+	int state = 0;
 
 	if (unlikely(in_interrupt()))
 		BUG();
@@ -843,39 +845,51 @@ pick_next_task:
 	}
 
 	//OS course : search for next highest prio process:
-	//if we have RT or short process:
+	//set the current prio array to be the previous:
+	prev_array = current->array;
+	next_array = rq->active;
+
 	idx = sched_find_first_bit(rq->rt_short->bitmap);
+	//if we have RT or short process:
 	if( idx < MAX_PRIO){
-		array = rq->rt_short;		
+		next_array = rq->rt_short;	
+		if( idx < 100 || prev_array != next_array){
+			goto keep_schedul_as_usual_for_rt_and_other;
+		}
+		next_queue = next_array->queue + idx;
+		next = list_entry(next_queue->next, task_t, run_list);
+		if(next->static_prio == prev->static_prio && prev->timeslice > 0){
+			next = prev;
+		}
+		goto switch_tasks;
+
 	//or if we have others in active:
 	}elseif(rq->active->nr_active){	
-		array = rq->active;
+		idx = sched_find_first_bit(rq->active->bitmap);
+
 	//or if we have others of any kind:
-	}elseif(sched_find_first_bit(rq->expired->bitmap)){	
-		array = rq->active;
-	}else{		//or if we have overdues:
-
-	}
-
-array = rq->active;
-
-
-
-
-	
-	if (unlikely(!array->nr_active)) {
+	}elseif(rq->expired->nr_active){		
 		/*
 		 * Switch the active and expired arrays.
 		 */
 		rq->active = rq->expired;
-		rq->expired = array;
-		array = rq->active;
+		rq->expired = next_array;
+		next_array = rq->active;
 		rq->expired_timestamp = 0;
+		idx = sched_find_first_bit(rq->next_array->bitmap);
+
+	//or if we have overdues (there must be one)
+	//since we've considered nr_runqueue above:
+	}else{		
+		next_array = rq->overdue;
+		idx = OVERDUE_PRIO;
+		next = prev;
+		goto switch_tasks;
 	}
 
-	idx = sched_find_first_bit(array->bitmap);
-	queue = array->queue + idx;
-	next = list_entry(queue->next, task_t, run_list);
+keep_schedul_as_usual_for_rt_and_other:	
+	next_queue = next_array->queue + idx;
+	next = list_entry(next_queue->next, task_t, run_list);
 
 switch_tasks:
 	prefetch(next);
@@ -1149,7 +1163,7 @@ static inline task_t *find_process_by_pid(pid_t pid)
 	return pid ? find_task_by_pid(pid) : current;
 }
 
-#define IS_SHORT_PROCESS 1		//OS course define
+#define IS_SHORT_PROCESS		1	//OS course define
 
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {

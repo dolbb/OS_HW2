@@ -123,6 +123,7 @@ extern unsigned long nr_uninterruptible(void);
 #define MIN_REQUESTED_TIME 		1		/* OS course defines */
 #define MAX_REQUESTED_TIME 		3000	/* OS course defines */
 #define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
+#define OVERDUE_PRIO 			139		/* OS course defines */
 
 struct sched_param {
 	int sched_priority;
