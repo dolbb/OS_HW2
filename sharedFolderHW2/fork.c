@@ -772,6 +772,15 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	nr_threads++;
 	write_unlock_irq(&tasklist_lock);
 
+	// Os course
+	if(current->policy == SCHED_SHORT){
+		p->policy = SCHED_SHORT;
+	}
+	p->requestedTime = current->requestedTime;
+	p->iAmOverdue = 0;
+	p->iWasShort = 0;
+	p->overdue_static_prio = current->overdue_static_prio;
+	
 	if (p->ptrace & PT_PTRACED)
 		send_sig(SIGSTOP, p, 1);
 	wake_up_forked_process(p);	/* do this last */
