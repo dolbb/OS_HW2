@@ -321,15 +321,9 @@ static inline int effective_prio(task_t *p)
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
-	prio_array_t *array = rq->active;
+	prio_array_t *array = pointer_to_my_active_prio_array(p, rq);	// Os course
 
-	if (short_task(p) || rt_task(p)) {		// Os course
-		array = rq->rt_short;
-	}
-	else if (overdue_task(p)){				// Os course
-		array = rq->overdue;
-	}
-	else if (!rt_task(p) && sleep_time) {
+	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
 		 * an 'average sleep time' value here, based on
