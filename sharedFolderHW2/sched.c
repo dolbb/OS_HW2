@@ -152,6 +152,63 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 #define cpu_curr(cpu)		(cpu_rq(cpu)->curr)
 #define rt_task(p)		((p)->prio < MAX_RT_PRIO)
 
+///////////////////////////////////////////////
+///////		Os course helpers			///////
+///////////////////////////////////////////////
+
+static int short_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_SHORT && p->iAmOverdue == 0)
+		return 1;
+	return 0;
+}
+
+static int overdue_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_SHORT && p->iAmOverdue == 1)
+		return 1;
+	return 0;
+}
+
+static int other_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_OTHER)
+		return 1;
+	return 0;
+}
+
+
+static prio_array_t* pointer_to_my_active_prio_array(task_t *p, runqueue_t* rq) { 	// OS Course
+	prio_array_t* result;
+	
+	if (short_task(p) || rt_task(p)) {
+		result = rq->rt_short;
+	} else if (overdue_task(p)){
+		result = rq->overdue;
+	} else{
+		result = rq->active;
+	}
+
+	return result;
+}
+
+static unsigned int OS_TASK_TIMESLICE(task_t *p) {
+	unsigned int ret;
+	
+	if (short_task(p)) {
+		ret = p->requestedTime * HZ / 1000;
+	}
+	else if(overdue_task(p)){
+		ret = 2 * p->requestedTime * HZ / 1000;
+	} 
+	else {
+		ret = TASK_TIMESLICE(p);
+	}
+	
+	return ret;
+}
+
+///////////////////////////////////////////////
+///////		Os course helpers			///////
+///////////////////////////////////////////////
+		
 /*
  * Default context-switch locking:
  */
@@ -230,25 +287,34 @@ static inline int effective_prio(task_t *p)
 {
 	int bonus, prio;
 
-	/*
-	 * Here we scale the actual sleep average [0 .... MAX_SLEEP_AVG]
-	 * into the -5 ... 0 ... +5 bonus/penalty range.
-	 *
-	 * We use 25% of the full 0...39 priority range so that:
-	 *
-	 * 1) nice +19 interactive tasks do not preempt nice 0 CPU hogs.
-	 * 2) nice -20 CPU hogs do not get preempted by nice 0 tasks.
-	 *
-	 * Both properties are important to certain workloads.
-	 */
-	bonus = MAX_USER_PRIO*PRIO_BONUS_RATIO*p->sleep_avg/MAX_SLEEP_AVG/100 -
-			MAX_USER_PRIO*PRIO_BONUS_RATIO/100/2;
-
-	prio = p->static_prio - bonus;
-	if (prio < MAX_RT_PRIO)
-		prio = MAX_RT_PRIO;
-	if (prio > MAX_PRIO-1)
-		prio = MAX_PRIO-1;
+	if (short_task(p)) {				// Os course
+		prio = p->static_prio;
+	} 
+	else if (overdue_task(p)) {			// Os course
+		prio = OVERDUE_PRIO;
+	}
+	else {
+		/*
+		* Here we scale the actual sleep average [0 .... MAX_SLEEP_AVG]
+		* into the -5 ... 0 ... +5 bonus/penalty range.
+		*
+		* We use 25% of the full 0...39 priority range so that:
+		*
+		* 1) nice +19 interactive tasks do not preempt nice 0 CPU hogs.
+		* 2) nice -20 CPU hogs do not get preempted by nice 0 tasks.
+		*
+		* Both properties are important to certain workloads.
+		*/
+		bonus = MAX_USER_PRIO*PRIO_BONUS_RATIO*p->sleep_avg/MAX_SLEEP_AVG/100 -
+				MAX_USER_PRIO*PRIO_BONUS_RATIO/100/2;
+	
+		prio = p->static_prio - bonus;
+		if (prio < MAX_RT_PRIO)
+			prio = MAX_RT_PRIO;
+		if (prio > MAX_PRIO-1)
+			prio = MAX_PRIO-1;
+	}
+	
 	return prio;
 }
 
@@ -257,7 +323,13 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array = rq->active;
 
-	if (!rt_task(p) && sleep_time) {
+	if (short_task(p) || rt_task(p)) {		// Os course
+		array = rq->rt_short;
+	}
+	else if (overdue_task(p)){				// Os course
+		array = rq->overdue;
+	}
+	else if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
 		 * an 'average sleep time' value here, based on
@@ -739,7 +811,7 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if (p->array != rq->active) {
+	if (p->array != pointer_to_my_active_prio_array(p, rq)) {				// Os course
 		set_tsk_need_resched(p);
 		return;
 	}
@@ -755,8 +827,8 @@ void scheduler_tick(int user_tick, int system)
 			set_tsk_need_resched(p);
 
 			/* put it at the end of the queue: */
-			dequeue_task(p, rq->active);
-			enqueue_task(p, rq->active);
+			dequeue_task(p, pointer_to_my_active_prio_array(p, rq));
+			enqueue_task(p, pointer_to_my_active_prio_array(p, rq));
 		}
 		goto out;
 	}
@@ -771,18 +843,30 @@ void scheduler_tick(int user_tick, int system)
 	if (p->sleep_avg)
 		p->sleep_avg--;
 	if (!--p->time_slice) {
-		dequeue_task(p, rq->active);
+		dequeue_task(p, pointer_to_my_active_prio_array(p, rq));
 		set_tsk_need_resched(p);
+		
+		// Update task struct
 		p->prio = effective_prio(p);
 		p->first_time_slice = 0;
-		p->time_slice = TASK_TIMESLICE(p);
-
-		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
+		if (short_task(p)){			// Os course
+			p->iAmOverdue = 1;
+			p->overdue_static_prio = p->static_prio;
+		}
+		else if (overdue_task(p)){ 	// Os course
+			p->prio = SCHED_OTHER;
+			p->iAmOverdue = 0;
+			p->iWasShort = 1;
+		}
+		p->time_slice = OS_TASK_TIMESLICE(p);	// AFTER updating task struct !
+		
+		// Insert to prio_array
+		if (other_task(p) && (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq))) { // Os course
 			if (!rq->expired_timestamp)
 				rq->expired_timestamp = jiffies;
 			enqueue_task(p, rq->expired);
 		} else
-			enqueue_task(p, rq->active);
+			enqueue_task(p, pointer_to_my_active_prio_array(p, rq));		// Os course
 	}
 out:
 #if CONFIG_SMP
@@ -854,21 +938,21 @@ pick_next_task:
 	if( idx < MAX_PRIO){
 		next_array = rq->rt_short;	
 		if( idx < 100 || prev_array != next_array){
-			goto keep_schedul_as_usual_for_rt_and_other;
+			goto keep_schedule_as_usual_for_rt_and_other;
 		}
 		next_queue = next_array->queue + idx;
 		next = list_entry(next_queue->next, task_t, run_list);
-		if(next->static_prio == prev->static_prio && prev->timeslice > 0){
+		if(next->static_prio == prev->static_prio && prev->time_slice > 0){
 			next = prev;
 		}
 		goto switch_tasks;
-
+	}
 	//or if we have others in active:
-	}elseif(rq->active->nr_active){	
+	else if(rq->active->nr_active){	
 		idx = sched_find_first_bit(rq->active->bitmap);
-
+	}
 	//or if we have others of any kind:
-	}elseif(rq->expired->nr_active){		
+	else if(rq->expired->nr_active){		
 		/*
 		 * Switch the active and expired arrays.
 		 */
@@ -876,7 +960,7 @@ pick_next_task:
 		rq->expired = next_array;
 		next_array = rq->active;
 		rq->expired_timestamp = 0;
-		idx = sched_find_first_bit(rq->next_array->bitmap);
+		idx = sched_find_first_bit(next_array->bitmap);
 
 	//or if we have overdues (there must be one)
 	//since we've considered nr_runqueue above:
@@ -887,7 +971,7 @@ pick_next_task:
 		goto switch_tasks;
 	}
 
-keep_schedul_as_usual_for_rt_and_other:	
+keep_schedule_as_usual_for_rt_and_other:	
 	next_queue = next_array->queue + idx;
 	next = list_entry(next_queue->next, task_t, run_list);
 
@@ -1242,18 +1326,21 @@ change_to_short:
 			goto out_unlock;
 		}
 
-		//if we are here, p will become a short prio process:
+		// Insert to rt_short
+		array = p->array;
+		if (array)
+			deactivate_task(p, task_rq(p));
 		
-
-		//==============TODO: SHIFT P TO SHORT QUEUE============
-
-
 		//set new policy to p:
 		p->policy = SCHED_SHORT;
 
 		//set the relevant fields to init the short process:
 		p->requestedTime = lp.requested_time;
 		p->iWasShort = IS_SHORT_PROCESS;
+		
+		if (array)
+			activate_task(p, task_rq(p));
+		
 		retval = 0;
 		goto out_unlock;
 	}
