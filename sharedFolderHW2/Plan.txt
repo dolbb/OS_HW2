@@ -49,7 +49,6 @@
 	
 	Steps:
 		3.1	Add data structures:	
-			-	sched.c		struct runqueue:	Add "list_t overdure_short";
 			-	sched.c		struct runqueue:	Add "prio_array_t rt_short";
 			-	sched.c		struct runqueue:	Add "prio_array_t overdue";
 			
@@ -61,29 +60,24 @@
 		
 			*** Notice:	changing a data structure (runqueue, prio_array, task_struct...) requires locks !	***
 		
-			-	setscheduler():		** Need to update sleep_avg ?? If yes - use and activate_task deactivate_task
-									dequeue_task()				
-									p->prio = effective_prio()
-									enqueue_task()
-		
-		
-			-	dequeue_task():		If SCHED_SHORT update bitmap_short
+			-	setscheduler():		For SCHED_SHORT: call deactivate_task and activate_task
 			
-			-	enqueue_task():		If SCHED_SHORT update bitmap_short
+			-	activate_task():	(Not sure if needed ??)	p->prio = effective_prio()
 			
-			-	effective_prio():	If SCHED_SHORT 	p->prio = static_prio
+			-	effective_prio():	If (task_short) 	p->prio = p->static_prio
+									If (task_overdue)	p->prio = OVERDUE_PRIO
 			
-			-	TASK_TIMESLICE():	If (SCHED_SHORT && iAmOverdue) return "requested_time * HZ / 1000"
-									If (SCHED_SHORT && !iAmOverdue) return "2 * requested_time * HZ / 1000"
+			-	TASK_TIMESLICE():	If (task_short) 	return "requested_time * HZ / 1000"
+									If (task_overdue) 	return "2 * requested_time * HZ / 1000"
 		
-			-	scheduler_tick():	move from "overdure_short" to "active"
+			-	scheduler_tick():	move from "overdue_short" to "active"
 									p->policy = SCHED_OTHER
 									
 									"if (p->array != rq->active)" - skip this for Overdue 
 									Support short->overdue, overdue->other (see ControlPaths.txt)	
 		
 									SHORT becomes overdue:
-									remove from "active"
+									remove from "rt_short"
 									time_slice = 2 * requested_time * HZ / 1000
 									insert to tail of "overdure_short"
 		
