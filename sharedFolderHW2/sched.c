@@ -1430,6 +1430,11 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	if (!p)
 		goto out_unlock;
 	lp.sched_priority = p->rt_priority;
+	
+	if (short_task(p)){		// Os course
+		lp.requested_time = p->requestedTime;
+	}
+	
 	read_unlock(&tasklist_lock);
 
 	/*
