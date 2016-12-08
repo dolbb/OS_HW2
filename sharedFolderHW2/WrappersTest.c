@@ -43,7 +43,8 @@ void testShort()
 	int remainingTime = short_remaining_time(getpid());
 	assert(remainingTime > 0);
 	
-	//assert(was_short(getpid()) == false);
+	assert(was_short(getpid()) == -1);
+	assert(errno == EINVAL);
 }
 
 void testOverdue()
