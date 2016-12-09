@@ -156,6 +156,24 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 ///////		Os course helpers			///////
 ///////////////////////////////////////////////
 
+inline int short_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_SHORT && p->iAmOverdue == 0)
+		return 1;
+	return 0;
+}
+
+inline int overdue_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_SHORT && p->iAmOverdue == 1)
+		return 1;
+	return 0;
+}
+
+inline int other_task(task_t *p) {	// OS Course
+	if (p->policy == SCHED_OTHER)
+		return 1;
+	return 0;
+}
+
 static prio_array_t* pointer_to_my_active_prio_array(task_t *p, runqueue_t* rq) { 	// OS Course
 	prio_array_t* result;
 	
@@ -823,16 +841,19 @@ void scheduler_tick(int user_tick, int system)
 		
 		// Update task struct
 		
-		if (short_task(p)){			// Os course
-			p->iAmOverdue = 1;
-			p->overdue_static_prio = p->static_prio;
-			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
-		}
-		else if (overdue_task(p)){ 	// Os course
+		if (overdue_task(p)){ 	// Os course
 			p->policy = SCHED_OTHER;
 			p->iAmOverdue = 0;
 			p->iWasShort = 1;
+			p->static_prio = p->overdue_static_prio;
+			p->requestedTime = INVALID_REQUESTED_TIME;
 			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
+		}
+		else if (short_task(p)){			// Os course
+			p->iAmOverdue = 1;
+			p->overdue_static_prio = p->static_prio;
+			p->static_prio = OVERDUE_PRIO;
+			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		p->prio = effective_prio(p);
 		p->first_time_slice = 0;

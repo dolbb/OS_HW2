@@ -125,32 +125,6 @@ extern unsigned long nr_uninterruptible(void);
 #define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
 #define OVERDUE_PRIO 			139		/* OS course defines */
 
-
-///////////////////////////////////////////////
-///////		Os course helpers			///////
-///////////////////////////////////////////////
-
-int short_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_SHORT && p->iAmOverdue == 0)
-		return 1;
-	return 0;
-}
-
-int overdue_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_SHORT && p->iAmOverdue == 1)
-		return 1;
-	return 0;
-}
-
-int other_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_OTHER)
-		return 1;
-	return 0;
-}
-///////////////////////////////////////////////
-///////		Os course helpers			///////
-///////////////////////////////////////////////
-
 struct sched_param {
 	int sched_priority;
 	int requested_time;		/* OS course addition */
