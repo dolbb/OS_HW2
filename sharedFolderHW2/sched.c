@@ -841,17 +841,20 @@ void scheduler_tick(int user_tick, int system)
 		set_tsk_need_resched(p);
 		
 		// Update task struct
-		p->prio = effective_prio(p);
-		p->first_time_slice = 0;
+		
 		if (short_task(p)){			// Os course
 			p->iAmOverdue = 1;
 			p->overdue_static_prio = p->static_prio;
+			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		else if (overdue_task(p)){ 	// Os course
-			p->prio = SCHED_OTHER;
+			p->policy = SCHED_OTHER;
 			p->iAmOverdue = 0;
 			p->iWasShort = 1;
+			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
 		}
+		p->prio = effective_prio(p);
+		p->first_time_slice = 0;
 		p->time_slice = OS_TASK_TIMESLICE(p);	// AFTER updating task struct !
 		
 		// Insert to prio_array
