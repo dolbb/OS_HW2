@@ -156,25 +156,6 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 ///////		Os course helpers			///////
 ///////////////////////////////////////////////
 
-static int short_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_SHORT && p->iAmOverdue == 0)
-		return 1;
-	return 0;
-}
-
-static int overdue_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_SHORT && p->iAmOverdue == 1)
-		return 1;
-	return 0;
-}
-
-static int other_task(task_t *p) {	// OS Course
-	if (p->policy == SCHED_OTHER)
-		return 1;
-	return 0;
-}
-
-
 static prio_array_t* pointer_to_my_active_prio_array(task_t *p, runqueue_t* rq) { 	// OS Course
 	prio_array_t* result;
 	

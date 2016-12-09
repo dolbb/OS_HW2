@@ -725,9 +725,27 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	__cli();
 	if (!current->time_slice)
 		BUG();
-	p->time_slice = (current->time_slice + 1) >> 1;
-	p->first_time_slice = 1;
-	current->time_slice >>= 1;
+	
+	// Os course
+	if(current->policy == SCHED_SHORT){
+		p->policy = SCHED_SHORT;
+		if(short_task(current)){
+			p->iAmOverdue = 0;
+			p->time_slice = current->time_slice/2 + current->time_slice % 2;
+			current->time_slice /= 2;
+		}else{
+			p->iAmOverdue = 1;
+			p->overdue_static_prio = current->overdue_static_prio;
+			p->time_slice = current->time_slice;
+		}
+		p->requestedTime = current->requestedTime;
+		p->iWasShort = 1;
+	}else{
+		p->time_slice = (current->time_slice + 1) >> 1;
+		p->first_time_slice = 1;
+		current->time_slice >>= 1;
+	}
+
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
 		/*
@@ -771,15 +789,6 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	hash_pid(p);
 	nr_threads++;
 	write_unlock_irq(&tasklist_lock);
-
-	// Os course
-	if(current->policy == SCHED_SHORT){
-		p->policy = SCHED_SHORT;
-	}
-	p->requestedTime = current->requestedTime;
-	p->iAmOverdue = 0;
-	p->iWasShort = 0;
-	p->overdue_static_prio = current->overdue_static_prio;
 	
 	if (p->ptrace & PT_PTRACED)
 		send_sig(SIGSTOP, p, 1);
