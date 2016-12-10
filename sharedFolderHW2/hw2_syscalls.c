@@ -52,7 +52,11 @@ asmlinkage int sys_short_remaining_time(pid_t PID){
 	GET_PROCESS_AND_RETURN_IF_MISSING
 
 	if(p->policy == SCHED_SHORT){
+<<<<<<< HEAD
 		ret = p->time_slice* 1000 / HZ;
+=======
+		ret = p->time_slice * 1000 / HZ;
+>>>>>>> refs/remotes/origin/master
 	}else{
 		ret = -EINVAL;
 	}

@@ -290,7 +290,7 @@ static inline int effective_prio(task_t *p)
 		prio = p->static_prio;
 	} 
 	else if (overdue_task(p)) {			// Os course
-		prio = OVERDUE_PRIO;
+		prio = p->static_prio;	//OVERDUE_PRIO;	//TODO: change
 	}
 	else {
 		/*
@@ -846,13 +846,13 @@ void scheduler_tick(int user_tick, int system)
 			p->iAmOverdue = 0;
 			p->iWasShort = 1;
 			p->static_prio = p->overdue_static_prio;
-			p->requestedTime = INVALID_REQUESTED_TIME;
+			//p->requestedTime = INVALID_REQUESTED_TIME;
 			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
 		}
 		else if (short_task(p)){			// Os course
 			p->iAmOverdue = 1;
 			p->overdue_static_prio = p->static_prio;
-			p->static_prio = OVERDUE_PRIO;
+			//p->static_prio = OVERDUE_PRIO;
 			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		p->prio = effective_prio(p);
@@ -929,48 +929,34 @@ pick_next_task:
 
 	//OS course : search for next highest prio process:
 	//set the current prio array to be the previous:
-	prev_array = current->array;
+	next_array = rq->rt_short;
+	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		goto move_on;
+	}
+	
 	next_array = rq->active;
-
-	idx = sched_find_first_bit(rq->rt_short->bitmap);
-	//if we have RT or short process:
-	if( idx < MAX_PRIO){
-		next_array = rq->rt_short;	
-		if( idx < 100 || prev_array != next_array){
-			goto keep_schedule_as_usual_for_rt_and_other;
-		}
-		next_queue = next_array->queue + idx;
-		next = list_entry(next_queue->next, task_t, run_list);
-		if(next->static_prio == prev->static_prio && prev->time_slice > 0){
-			next = prev;
-		}
-		goto switch_tasks;
+	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		goto move_on;
 	}
-	//or if we have others in active:
-	else if(rq->active->nr_active){	
-		idx = sched_find_first_bit(rq->active->bitmap);
-	}
-	//or if we have others of any kind:
-	else if(rq->expired->nr_active){		
-		/*
-		 * Switch the active and expired arrays.
-		 */
-		rq->active = rq->expired;
-		rq->expired = next_array;
-		next_array = rq->active;
+	
+	next_array = rq->expired;
+	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		// Switch "expired" and "active"
+		rq->expired = rq->active;
+		rq->active = next_array;
 		rq->expired_timestamp = 0;
-		idx = sched_find_first_bit(next_array->bitmap);
-
-	//or if we have overdues (there must be one)
-	//since we've considered nr_runqueue above:
-	}else{		
-		next_array = rq->overdue;
-		idx = OVERDUE_PRIO;
-		next = prev;
-		goto switch_tasks;
+		goto move_on;
 	}
+	
+	next_array = rq->overdue;
+	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		goto move_on;
+	}
+	
+	// I'm assuming we won't get to this point
 
-keep_schedule_as_usual_for_rt_and_other:	
+	// next_array + idx must be correct
+move_on:
 	next_queue = next_array->queue + idx;
 	next = list_entry(next_queue->next, task_t, run_list);
 
