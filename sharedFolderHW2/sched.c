@@ -180,7 +180,7 @@ static prio_array_t* pointer_to_my_active_prio_array(task_t *p, runqueue_t* rq) 
 	if (short_task(p) || rt_task(p)) {
 		result = rq->rt_short;
 	} else if (overdue_task(p)){
-		result = rq->active;	//rq->overdue;	//TODO: change
+		result = rq->overdue;
 	} else{
 		result = rq->active;
 	}
@@ -947,6 +947,13 @@ pick_next_task:
 		rq->expired_timestamp = 0;
 		goto move_on;
 	}
+	
+	next_array = rq->overdue;
+	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		goto move_on;
+	}
+	
+	// I'm assuming we won't get to this point
 
 	// next_array + idx must be correct
 move_on:
