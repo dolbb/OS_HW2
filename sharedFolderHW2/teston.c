@@ -44,11 +44,11 @@ int main() {
 	int pid = fork();
 	if (pid == 0) {
 		test_is_short();
-		while(1)
-		{
-			printf(".\n");
-			sched_yield();
-		}
+		//while(1)
+		//{
+		// 	printf(".\n");
+		// 	sched_yield();
+		// }
 		printf("bye...\n");
 		//exit(0);
 	}
@@ -149,19 +149,19 @@ void test_is_short() {
 	
 	printf("\n1\n");
 	
-	while (is_short_flag == 1) {
-		for (int i = 0; i < 10000; i++)
-		{
-			/*printf("DEBUG: remainingTime=%d\n", short_remaining_time(getpid()));
-			if (i == 8000)
-			{
-				printf("exiting...\n");
-				exit(0);
-			}*/
-		}
+//	while (is_short_flag == 1) {
+		// for (int i = 0; i < 10000; i++)
+		// {
+		// 	printf("DEBUG: remainingTime=%d\n", short_remaining_time(getpid()));
+		// 	if (i == 8000)
+		// 	{
+		// 		printf("exiting...\n");
+		// 		exit(0);
+		// 	}
+		// }
 		is_short_flag = is_short(getpid());
 		printf("DEBUG: is_short_flag=%d\n", is_short_flag);
-	}
+//	}
 	printf("\n2\n");
 	/*
 	assert(is_short_flag == 0);
