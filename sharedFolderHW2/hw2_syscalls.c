@@ -52,7 +52,7 @@ asmlinkage int sys_short_remaining_time(pid_t PID){
 	GET_PROCESS_AND_RETURN_IF_MISSING
 
 	if(p->policy == SCHED_SHORT){
-		ret = p->time_slice;
+		ret = p->time_slice * 1000 / HZ;
 	}else{
 		ret = -EINVAL;
 	}
