@@ -931,13 +931,19 @@ pick_next_task:
 	//set the current prio array to be the previous:
 	next_array = rq->rt_short;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		// if(prev->static_prio <= idx){
+		// 	idx = prev->static_prio;
+		// 	next = prev;
+		// }
 		printk("$1 ");
+		// goto switch_tasks;
 		goto move_on;
 	}
 	
 	next_array = rq->active;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		if(current->iWasShort) printk("$2 ");
+		if(other_task(current) && current->iWasShort && !current->iAmOverdue)
+			printk("$2 ");
 		goto move_on;
 	}
 	
@@ -947,18 +953,21 @@ pick_next_task:
 		rq->expired = rq->active;
 		rq->active = next_array;
 		rq->expired_timestamp = 0;
-		if(current->iWasShort) printk("$3 ");
+		if(other_task(current) && current->iWasShort && !current->iAmOverdue)
+			printk("$3 ");
 		goto move_on;
 	}
 	
 	next_array = rq->overdue;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		//next = prev;
 		printk("$4 ");
+		//goto switch_tasks;
 		goto move_on;
 	}
 	
 	// I'm assuming we won't get to this point
-
+	printk("$5 ");
 	// next_array + idx must be correct
 move_on:
 	next_queue = next_array->queue + idx;
