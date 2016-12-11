@@ -125,6 +125,12 @@ extern unsigned long nr_uninterruptible(void);
 #define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
 #define OVERDUE_PRIO 			139		/* OS course defines */
 
+#define CHANGE_JIFFIS_TO_HZ(jifs)	\
+	jifs * 1000 / HZ
+
+#define CHANGE_HZ_TO_JIFFIS(hez)	\
+	hez * HZ / 1000
+
 struct sched_param {
 	int sched_priority;
 	int requested_time;		/* OS course addition */

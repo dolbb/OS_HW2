@@ -40,7 +40,7 @@ void test_is_illegal();
 
 int main() {
 	sleep(2);//wait 3 seconds
-	printf("\x1B[31m");
+	//printf("\x1B[31m");
 	int pid = fork();
 	if (pid == 0) {
 		test_is_short();
@@ -86,53 +86,54 @@ int main() {
 				}
 			}
 		}*/
-		printf("3\n");
+		printf("\nFather ending 1\n");
 		while (waitpid(-1, NULL, 0) != -1);
-		printf("\x1B[32mDONE.\n\x1B[0mIf no asserts - you`re GOOD. \n");
+		printf("Father ending 2\n");
+		//printf("\x1B[32mDONE.\n\x1B[0mIf no asserts - you`re GOOD. \n");
 		return 0;
 	}
 }
 
 
 void test_forking() {
-	SET_PARAMS(params, 2, 40);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);//SUCCESSED SETPARAM
-	int is_short_flag = is_short(getpid());
-	assert(is_short_flag == 1);
-	int time_slice_before_fork = short_remaining_time(getpid());
-	int time_slice_div2 = time_slice_before_fork / 2;
-	int child = fork();
-	if (child == 0)
-	{
-		int child_time_slice = short_remaining_time(getpid());
-		is_short_flag = is_short(getpid());
-		assert(is_short_flag == 1);
-		int should_be = time_slice_div2 + (time_slice_before_fork % 2);
-		assert(child_time_slice >= should_be - 1 && child_time_slice < should_be + 1);
-		exit(0);
-	}
-	int current_time_slice = short_remaining_time(getpid());
-	assert(current_time_slice >= time_slice_div2 - 1 && current_time_slice < time_slice_div2 + 1);
-	while (waitpid(-1, NULL, 0) != -1);
-	while (is_short_flag == 1) {
-		for (int i = 0; i < 10000; i++)
-		{
-		}
-		is_short_flag = is_short(getpid());
-	}
-	assert(is_short_flag == 0);
-	time_slice_before_fork = short_remaining_time(getpid());
-	child = fork();
-	if (child == 0)
-	{
-		int child_time_slice = short_remaining_time(getpid());
-		is_short_flag = is_short(getpid());
-		assert(is_short_flag == 0);
-		assert(child_time_slice >= time_slice_before_fork - 1 && child_time_slice < time_slice_before_fork + 1);
-	}
-	current_time_slice = short_remaining_time(getpid());
-	assert(current_time_slice >= time_slice_before_fork - 1 && current_time_slice < time_slice_before_fork + 1);
-	while (waitpid(-1, NULL, 0) != -1);
+	// SET_PARAMS(params, 2, 40);
+	// assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);//SUCCESSED SETPARAM
+	// int is_short_flag = is_short(getpid());
+	// assert(is_short_flag == 1);
+	// int time_slice_before_fork = short_remaining_time(getpid());
+	// int time_slice_div2 = time_slice_before_fork / 2;
+	// int child = fork();
+	// if (child == 0)
+	// {
+	// 	int child_time_slice = short_remaining_time(getpid());
+	// 	is_short_flag = is_short(getpid());
+	// 	assert(is_short_flag == 1);
+	// 	int should_be = time_slice_div2 + (time_slice_before_fork % 2);
+	// 	assert(child_time_slice >= should_be - 1 && child_time_slice < should_be + 1);
+	// 	exit(0);
+	// }
+	// int current_time_slice = short_remaining_time(getpid());
+	// assert(current_time_slice >= time_slice_div2 - 1 && current_time_slice < time_slice_div2 + 1);
+	// while (waitpid(-1, NULL, 0) != -1);
+	// while (is_short_flag == 1) {
+	// 	for (int i = 0; i < 10000; i++)
+	// 	{
+	// 	}
+	// 	is_short_flag = is_short(getpid());
+	// }
+	// assert(is_short_flag == 0);
+	// time_slice_before_fork = short_remaining_time(getpid());
+	// child = fork();
+	// if (child == 0)
+	// {
+	// 	int child_time_slice = short_remaining_time(getpid());
+	// 	is_short_flag = is_short(getpid());
+	// 	assert(is_short_flag == 0);
+	// 	assert(child_time_slice >= time_slice_before_fork - 1 && child_time_slice < time_slice_before_fork + 1);
+	// }
+	// current_time_slice = short_remaining_time(getpid());
+	// assert(current_time_slice >= time_slice_before_fork - 1 && current_time_slice < time_slice_before_fork + 1);
+	// while (waitpid(-1, NULL, 0) != -1);
 
 }
 
@@ -143,18 +144,20 @@ void test_is_short() {
 	/* SUCCESS 1 */
 	SET_PARAMS(params, 2, 20);
 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);//SUCCESSED SETPARAM
+	printf("DEBUG: remainingTime=%d\n", short_remaining_time(getpid()));
     /* end of tests */
 	int is_short_flag = is_short(getpid());
 	assert(is_short_flag == 1);
 	int tmp;
 
-	printf("\n1\n");
+	printf("\nDEBUG: test_is_short started after checks!\n\n");
 	
 	while (is_short_flag == 1) {
 		for (int i = 0; i < 10000; i++)
 		{
 			//if(!((tmp = short_remaining_time(getpid())) % 5))
-				printf("DEBUG: remainingTime=%d\n", tmp);
+			//	printf("DEBUG: remainingTime=%d\n", tmp);
+			printf("DEBUG: remainingTime=%d\n", short_remaining_time(getpid()));
 			if (i == 8000)
 			{
 				printf("exiting...\n");
@@ -165,104 +168,102 @@ void test_is_short() {
 		printf("DEBUG: is_short_flag=%d\n", is_short_flag);
 	}
 	printf("\n2\n");
-	/*
+	
 	assert(is_short_flag == 0);
 	while (is_short_flag == 0) {
-		for (int i = 0; i < 10000; i++)
-		{
-		}
-		is_short_flag = is_short(getpid());
-	}
-	assert(is_short_flag == -1);
-	assert(errno == EINVAL);*/
-}
-
-void test_basic_short_remaining_time() {
-	int res;
-	assert(short_remaining_time(getpid()) == -1);
-	assert(errno == EINVAL);
-
-	SET_PARAMS(params, 2, 20);
-
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
-	int time;
-	time = short_remaining_time(getpid());
-	int is_short_flag = is_short(getpid());
-
-
-	while (is_short_flag == 1) {
-		time = short_remaining_time(getpid());
-		assert(time > 0 && time < 20);
-		for (int i = 0; i < 10000; i++)
-		{
-		}
-		is_short_flag = is_short(getpid());
-	}
-	assert(is_short_flag == 0);
-	time = short_remaining_time(getpid());
-	assert(time > 35 && time < 40);
-}
-
-void test_was_short() {
-
-	assert(was_short(getpid()) == 0); // the process was NOT short before
-
-	SET_PARAMS(params, 2, 20);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
-	assert(was_short(getpid()) == -1); // the process is short right now
-	assert(errno == EINVAL);
-	int is_short_flag = is_short(getpid());
-	int time;
-	assert(is_short_flag == 1);
-	while (is_short_flag == 1) {
-		time = short_remaining_time(getpid());
-		for (int i = 0; i < 10000; i++)
-		{
-		}
-		is_short_flag = is_short(getpid());
-	}
-	assert(is_short_flag == 0);
-	while (is_short_flag == 0) {
-		time = short_remaining_time(getpid());
-		for (int i = 0; i < 10000; i++)
-		{
-		}
+		for (int i = 0; i < 5000; i++);
 		is_short_flag = is_short(getpid());
 	}
 	assert(is_short_flag == -1);
 	assert(errno == EINVAL);
-
-	assert(was_short(getpid()) == 1); // the process was short before
-
-}
-void test_is_illegal() {
-	/* FAILED 1 */
-	SET_PARAMS(illegal, 0, 20);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal) == 0);// we make PID: current process as SHORT
-	assert(sched_setscheduler(getpid(), SCHED_OTHER, (struct sched_param *)&illegal) == -1);// try to change it to OTHER. -1 and errno=EPERM shold be returned.
-	assert(errno == EPERM);
-	/* FAILED 2 */
-	SET_PARAMS(illegal2, 2, 3001);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal2) == -1);//FAILED PARAM: REQUESTED_TIME > 3000
-	assert(errno == EINVAL);
-	/* FAILED 3 */
-	SET_PARAMS(illegal3, 2, 0);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal3) == -1);//FAILED PARAM: REQUESTED_TIME < 1
-	assert(errno == EINVAL);
 }
 
-void test_getsetparam() {
-	SET_PARAMS(p2, 2, 1000);
-	assert(sched_getparam(getpid(), (struct sched_param *) &p2) == 0);
-	assert(p2.sched_priority == 0);
-	SET_PARAMS(params, 2, 2500);
-	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
-	assert(sched_getparam(getpid(), (struct sched_param *)&p2) == 0);
-	assert(p2.requested_time == 2500);
+// void test_basic_short_remaining_time() {
+// 	int res;
+// 	assert(short_remaining_time(getpid()) == -1);
+// 	assert(errno == EINVAL);
 
-	fork();
-	while (is_short(getpid()) != 1);
-	assert(sched_getparam(getpid(), (struct sched_param *)&p2) == 0);
-	assert(p2.requested_time == 2500);
-	printf("\nexiting test_getsetparam\n");
-}
+// 	SET_PARAMS(params, 2, 20);
+
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
+// 	int time;
+// 	time = short_remaining_time(getpid());
+// 	int is_short_flag = is_short(getpid());
+
+
+// 	while (is_short_flag == 1) {
+// 		time = short_remaining_time(getpid());
+// 		assert(time > 0 && time < 20);
+// 		for (int i = 0; i < 10000; i++)
+// 		{
+// 		}
+// 		is_short_flag = is_short(getpid());
+// 	}
+// 	assert(is_short_flag == 0);
+// 	time = short_remaining_time(getpid());
+// 	assert(time > 35 && time < 40);
+// }
+
+// void test_was_short() {
+
+// 	assert(was_short(getpid()) == 0); // the process was NOT short before
+
+// 	SET_PARAMS(params, 2, 20);
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
+// 	assert(was_short(getpid()) == -1); // the process is short right now
+// 	assert(errno == EINVAL);
+// 	int is_short_flag = is_short(getpid());
+// 	int time;
+// 	assert(is_short_flag == 1);
+// 	while (is_short_flag == 1) {
+// 		time = short_remaining_time(getpid());
+// 		for (int i = 0; i < 10000; i++)
+// 		{
+// 		}
+// 		is_short_flag = is_short(getpid());
+// 	}
+// 	assert(is_short_flag == 0);
+// 	while (is_short_flag == 0) {
+// 		time = short_remaining_time(getpid());
+// 		for (int i = 0; i < 10000; i++)
+// 		{
+// 		}
+// 		is_short_flag = is_short(getpid());
+// 	}
+// 	assert(is_short_flag == -1);
+// 	assert(errno == EINVAL);
+
+// 	assert(was_short(getpid()) == 1); // the process was short before
+
+// }
+// void test_is_illegal() {
+// 	/* FAILED 1 */
+// 	SET_PARAMS(illegal, 0, 20);
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal) == 0);// we make PID: current process as SHORT
+// 	assert(sched_setscheduler(getpid(), SCHED_OTHER, (struct sched_param *)&illegal) == -1);// try to change it to OTHER. -1 and errno=EPERM shold be returned.
+// 	assert(errno == EPERM);
+// 	/* FAILED 2 */
+// 	SET_PARAMS(illegal2, 2, 3001);
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal2) == -1);//FAILED PARAM: REQUESTED_TIME > 3000
+// 	assert(errno == EINVAL);
+// 	/* FAILED 3 */
+// 	SET_PARAMS(illegal3, 2, 0);
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal3) == -1);//FAILED PARAM: REQUESTED_TIME < 1
+// 	assert(errno == EINVAL);
+// }
+
+// void test_getsetparam() {
+// 	SET_PARAMS(p2, 2, 1000);
+// 	assert(sched_getparam(getpid(), (struct sched_param *) &p2) == 0);
+// 	assert(p2.sched_priority == 0);
+// 	SET_PARAMS(params, 2, 2500);
+// 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
+// 	assert(sched_getparam(getpid(), (struct sched_param *)&p2) == 0);
+// 	assert(p2.requested_time == 2500);
+
+// 	fork();
+// 	while (is_short(getpid()) != 1);
+// 	assert(sched_getparam(getpid(), (struct sched_param *)&p2) == 0);
+// 	assert(p2.requested_time == 2500);
+// 	printf("\nexiting test_getsetparam\n");
+// }

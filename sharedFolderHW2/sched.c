@@ -844,7 +844,6 @@ void scheduler_tick(int user_tick, int system)
 		if (overdue_task(p)){ 	// Os course
 			p->policy = SCHED_OTHER;
 			p->iAmOverdue = 0;
-			p->iWasShort = 1;
 			p->static_prio = p->overdue_static_prio;
 			p->requestedTime = INVALID_REQUESTED_TIME;
 			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
@@ -1311,21 +1310,24 @@ change_to_short:
 			goto out_unlock;
 		}
 
-		// Insert to rt_short
-		array = p->array;
-		if (array)
-			deactivate_task(p, task_rq(p));
-		
-		//set new policy to p:
-		p->policy = SCHED_SHORT;
+		if(p->policy == SCHED_SHORT){
+			p->requestedTime = CHANGE_HZ_TO_JIFFIS(lp.requested_time);
+		}else{
+			// Insert to rt_short
+			array = p->array;
+			if (array)
+				deactivate_task(p, task_rq(p));
+			
+			//set new policy to p:
+			p->policy = SCHED_SHORT;
 
-		//set the relevant fields to init the short process:
-		p->requestedTime = lp.requested_time;
-		p->iWasShort = IS_SHORT_PROCESS;
-		
-		if (array)
-			activate_task(p, task_rq(p));
-		
+			//set the relevant fields to init the short process:
+			p->requestedTime = lp.requested_time;
+			p->iWasShort = IS_SHORT_PROCESS;
+			
+			if (array)
+				activate_task(p, task_rq(p));
+		}
 		retval = 0;
 		goto out_unlock;
 	}
