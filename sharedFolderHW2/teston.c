@@ -146,22 +146,24 @@ void test_is_short() {
     /* end of tests */
 	int is_short_flag = is_short(getpid());
 	assert(is_short_flag == 1);
-	
+	int tmp;
+
 	printf("\n1\n");
 	
-//	while (is_short_flag == 1) {
-		// for (int i = 0; i < 10000; i++)
-		// {
-		// 	printf("DEBUG: remainingTime=%d\n", short_remaining_time(getpid()));
-		// 	if (i == 8000)
-		// 	{
-		// 		printf("exiting...\n");
-		// 		exit(0);
-		// 	}
-		// }
+	while (is_short_flag == 1) {
+		for (int i = 0; i < 10000; i++)
+		{
+			//if(!((tmp = short_remaining_time(getpid())) % 5))
+				printf("DEBUG: remainingTime=%d\n", tmp);
+			if (i == 8000)
+			{
+				printf("exiting...\n");
+				exit(0);
+			}
+		}
 		is_short_flag = is_short(getpid());
 		printf("DEBUG: is_short_flag=%d\n", is_short_flag);
-//	}
+	}
 	printf("\n2\n");
 	/*
 	assert(is_short_flag == 0);

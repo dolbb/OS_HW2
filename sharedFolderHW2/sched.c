@@ -846,13 +846,13 @@ void scheduler_tick(int user_tick, int system)
 			p->iAmOverdue = 0;
 			p->iWasShort = 1;
 			p->static_prio = p->overdue_static_prio;
-			//p->requestedTime = INVALID_REQUESTED_TIME;
+			p->requestedTime = INVALID_REQUESTED_TIME;
 			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
 		}
 		else if (short_task(p)){			// Os course
 			p->iAmOverdue = 1;
 			p->overdue_static_prio = p->static_prio;
-			//p->static_prio = OVERDUE_PRIO;
+			p->static_prio = OVERDUE_PRIO;
 			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		p->prio = effective_prio(p);
