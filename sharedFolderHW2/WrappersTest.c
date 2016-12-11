@@ -67,7 +67,7 @@ int main()
 	cout << "I will now resched as a SHORT process" << endl;
 	my_sched_param param;
 	param.sched_priority = -1;
-	param.requested_time = 2500;
+	param.requested_time = 100;
 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (sched_param*)(&param)) == 0);
 	
 	testShort();
