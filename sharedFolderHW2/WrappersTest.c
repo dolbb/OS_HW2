@@ -54,7 +54,8 @@ void testOverdue()
 	int remainingTime = short_remaining_time(getpid());
 	assert(remainingTime > 0);
 	
-	assert(was_short(getpid() == true));
+	assert(was_short(getpid()) == -1);
+	assert(errno == EINVAL);
 }
 
 int main()
@@ -67,7 +68,7 @@ int main()
 	cout << "I will now resched as a SHORT process" << endl;
 	my_sched_param param;
 	param.sched_priority = -1;
-	param.requested_time = 100;
+	param.requested_time = 200;
 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (sched_param*)(&param)) == 0);
 	
 	testShort();
@@ -85,15 +86,16 @@ int main()
 		int tmp_remaining_time = short_remaining_time(getpid());
 		
 		// Print status when timeslice changes
-		if (remaining_time != tmp_remaining_time){
+		if (remaining_time > tmp_remaining_time){
 			remaining_time = tmp_remaining_time;
 			printf("DEBUG: is_short_flag=%d, remaining_time=%d\n", is_short_flag, tmp_remaining_time);
-		}	
+		}
 	}
 	
 	cout << "I am an OVERDUE process" << endl;
-	//testOverdue();
+	testOverdue();
 	
+	remaining_time = short_remaining_time(getpid());
 	while (remaining_time > 10) {
 		
 		// Get current state
@@ -107,6 +109,8 @@ int main()
 		}
 	}
 	
+	printf("no time!\n");
+
 	while (remaining_time < 11){
 		
 		// Get current state

@@ -804,10 +804,11 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if (p->array != pointer_to_my_active_prio_array(p, rq)) {				// Os course
+	if (p->array != pointer_to_my_active_prio_array(p, rq)) {		// Os course
 		set_tsk_need_resched(p);
 		return;
 	}
+	
 	spin_lock(&rq->lock);
 	if (unlikely(rt_task(p))) {
 		/*
@@ -930,11 +931,13 @@ pick_next_task:
 	//set the current prio array to be the previous:
 	next_array = rq->rt_short;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		printk("$1 ");
 		goto move_on;
 	}
 	
 	next_array = rq->active;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		if(current->iWasShort) printk("$2 ");
 		goto move_on;
 	}
 	
@@ -944,11 +947,13 @@ pick_next_task:
 		rq->expired = rq->active;
 		rq->active = next_array;
 		rq->expired_timestamp = 0;
+		if(current->iWasShort) printk("$3 ");
 		goto move_on;
 	}
 	
 	next_array = rq->overdue;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+		printk("$4 ");
 		goto move_on;
 	}
 	
