@@ -729,9 +729,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// Os course
 	if(current->policy == SCHED_SHORT){
 		p->policy = SCHED_SHORT;
-		if(current->iAmOverdue == 0){
-			p->time_slice = current->time_slice/2 + current->time_slice % 2;
-			current->time_slice /= 2;
+		if(short_task(current)){
+			p->time_slice = (current->time_slice / 2) + (current->time_slice % 2);
+			current->time_slice >>= 1;
+			current->justGotForked = 1;
 		}
 		p->first_time_slice = 1;
 	}else{
@@ -747,6 +748,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * a single jiffy left from its timeslice. Taking the
 		 * runqueue lock is not a problem.
 		 */
+		current->justGotForked = 0;
 		current->time_slice = 1;
 		scheduler_tick(0,0);
 	}
@@ -783,11 +785,15 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	hash_pid(p);
 	nr_threads++;
 	write_unlock_irq(&tasklist_lock);
-	
+
 	if (p->ptrace & PT_PTRACED)
 		send_sig(SIGSTOP, p, 1);
 	wake_up_forked_process(p);	/* do this last */
 	++total_forks;
+	
+	if(overdue_task(current)){	//TODO: delete
+		goto fork_out;
+	}
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);
 	else
