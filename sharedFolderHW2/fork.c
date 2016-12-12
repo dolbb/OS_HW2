@@ -729,17 +729,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// Os course
 	if(current->policy == SCHED_SHORT){
 		p->policy = SCHED_SHORT;
-		if(short_task(current)){
-			p->iAmOverdue = 0;
+		if(current->iAmOverdue == 0){
 			p->time_slice = current->time_slice/2 + current->time_slice % 2;
 			current->time_slice /= 2;
-		}else{
-			p->iAmOverdue = 1;
-			p->overdue_static_prio = current->overdue_static_prio;
-			p->time_slice = current->time_slice;
 		}
-		p->requestedTime = current->requestedTime;
-		p->iWasShort = 1;
+		p->first_time_slice = 1;
 	}else{
 		p->time_slice = (current->time_slice + 1) >> 1;
 		p->first_time_slice = 1;

@@ -75,7 +75,7 @@ int main()
 	
 	// Become overdue
 	while (is_short(getpid()) == 1) {
-		
+		fork();
 		// Get current state
 		int tmp_remaining_time = short_remaining_time(getpid());
 		

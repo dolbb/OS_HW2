@@ -192,10 +192,10 @@ static unsigned int OS_TASK_TIMESLICE(task_t *p) {
 	unsigned int ret;
 	
 	if (short_task(p)) {
-		ret = p->requestedTime * HZ / 1000;
+		ret = p->requestedTime;
 	}
 	else if(overdue_task(p)){
-		ret = 2 * p->requestedTime * HZ / 1000;
+		ret = 2 * p->requestedTime;
 	} 
 	else {
 		ret = TASK_TIMESLICE(p);
@@ -320,7 +320,13 @@ static inline int effective_prio(task_t *p)
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
+
 	prio_array_t *array = pointer_to_my_active_prio_array(p, rq);	// Os course
+
+	if(short_task(p) && !array){
+		printk("DEBUG: activate_task:	stopping here. :)\n");	//OS course
+		return;
+	}
 
 	if (!rt_task(p) && sleep_time) {
 		/*
@@ -335,6 +341,14 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 			p->sleep_avg = MAX_SLEEP_AVG;
 		p->prio = effective_prio(p);
 	}
+
+	if(short_task(p) && p->first_time_slice){
+		printk("DEBUG: activate_task:	My sleep_time is: %lu\n", p->sleep_timestamp);	//OS course
+		printk("DEBUG: activate_task:	My sleep_avg is: %d\n", p->sleep_avg);	//OS course
+		printk("DEBUG: activate_task:	My prio is: %d\n", p->prio);	//OS course
+		return;
+	}
+
 	enqueue_task(p, array);
 	rq->nr_running++;
 }
@@ -847,13 +861,13 @@ void scheduler_tick(int user_tick, int system)
 			p->iAmOverdue = 0;
 			p->static_prio = p->overdue_static_prio;
 			p->requestedTime = INVALID_REQUESTED_TIME;
-			printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
+			//printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
 		}
 		else if (short_task(p)){			// Os course
 			p->iAmOverdue = 1;
 			p->overdue_static_prio = p->static_prio;
 			p->static_prio = OVERDUE_PRIO;
-			printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
+			//printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		p->prio = effective_prio(p);
 		p->first_time_slice = 0;
@@ -933,7 +947,6 @@ pick_next_task:
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
 		if(short_task(prev) && prev->static_prio == idx){
 			next = prev;
-			printk("$1 ");
 			goto switch_tasks;
 		}
 		goto move_on;
@@ -941,8 +954,6 @@ pick_next_task:
 	
 	next_array = rq->active;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		if(other_task(current) && current->iWasShort && !current->iAmOverdue)
-			printk("$2 ");
 		goto move_on;
 	}
 	
@@ -952,8 +963,6 @@ pick_next_task:
 		rq->expired = rq->active;
 		rq->active = next_array;
 		rq->expired_timestamp = 0;
-		if(other_task(current) && current->iWasShort && !current->iAmOverdue)
-			printk("$3 ");
 		goto move_on;
 	}
 	
@@ -961,24 +970,20 @@ pick_next_task:
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
 		if (overdue_task(prev)){
 			next = prev;
-			printk("$4 ");
 			goto switch_tasks;
 		}
 		goto move_on;	
 
-		if (!overdue_task(prev)){
-			printk("\n ??? %lu ??? %d ??? %d ??? %d ??? \n", rq->nr_running, current->policy,current->iAmOverdue, current->iWasShort);
-		}
-		next = prev;
-		printk("$4 ");
-		goto switch_tasks;
+		// if (!overdue_task(prev)){
+		// 	printk("\n ??? %lu ??? %d ??? %d ??? %d ??? \n", rq->nr_running, current->policy,current->iAmOverdue, current->iWasShort);
+		// }
+		// next = prev;
+		// printk("$4 ");
+		// goto switch_tasks;
 		//goto move_on;
 	}
 	
-	// I'm assuming we won't get to this point
-	printk("$5 ");
 	// next_array + idx must be correct
-	idx = OVERDUE_PRIO;
 move_on:
 	next_queue = next_array->queue + idx;
 	next = list_entry(next_queue->next, task_t, run_list);
@@ -1161,7 +1166,7 @@ void set_user_nice(task_t *p, long nice)
 {
 	unsigned long flags;
 	prio_array_t *array;
-	runqueue_t *rq;
+	runqueue_t *rq;	
 
 	if (TASK_NICE(p) == nice || nice < -20 || nice > 19)
 		return;
@@ -1174,6 +1179,16 @@ void set_user_nice(task_t *p, long nice)
 		p->static_prio = NICE_TO_PRIO(nice);
 		goto out_unlock;
 	}
+	
+	if(overdue_task(p)){		/*OS course addition*/
+		p->overdue_static_prio = NICE_TO_PRIO(nice);
+		goto out_unlock;
+	}
+	
+	if(short_task(p) && p->static_prio == NICE_TO_PRIO(nice)){	/*OS course addition*/
+		goto out_unlock;
+	}
+
 	array = p->array;
 	if (array)
 		dequeue_task(p, array);
@@ -1302,7 +1317,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//check the current process for being short - OS course code:
 	if(p->policy == SCHED_SHORT){
 		if(policy == SCHED_SHORT){
-			if(lp.requested_time <= MAX_REQUESTED_TIME && lp.requested_time > p->requestedTime - p->time_slice){
+			if(CHANGE_MS_TO_JIFFIS(lp.requested_time) <= MAX_REQUESTED_TIME && CHANGE_MS_TO_JIFFIS(lp.requested_time) > p->requestedTime - p->time_slice){
 				goto change_to_short;
 			}
 			retval = -EINVAL;
@@ -1322,7 +1337,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		//if we are here than the "p" process is on SCHED_OTHER policy.
 
 		//check the requested running time validity [p->timeslice .. 3000]: 
-		if(lp.requested_time > MAX_REQUESTED_TIME || lp.requested_time < MIN_REQUESTED_TIME){
+		if(CHANGE_MS_TO_JIFFIS(lp.requested_time) > MAX_REQUESTED_TIME || CHANGE_MS_TO_JIFFIS(lp.requested_time) < MIN_REQUESTED_TIME){
 			retval = -EINVAL;
 			goto out_unlock;
 		}
@@ -1335,7 +1350,9 @@ change_to_short:
 		}
 
 		if(p->policy == SCHED_SHORT){
-			p->requestedTime = CHANGE_HZ_TO_JIFFIS(lp.requested_time);
+			int difference = CHANGE_MS_TO_JIFFIS(lp.requested_time) - p->requestedTime;
+			p->requestedTime = CHANGE_MS_TO_JIFFIS(lp.requested_time);
+			p->time_slice += difference;
 		}else{
 			// Insert to rt_short
 			array = p->array;
@@ -1346,9 +1363,10 @@ change_to_short:
 			p->policy = SCHED_SHORT;
 
 			//set the relevant fields to init the short process:
-			p->requestedTime = CHANGE_HZ_TO_JIFFIS(lp.requested_time);
+			p->requestedTime = CHANGE_MS_TO_JIFFIS(lp.requested_time);
 			p->iWasShort = IS_SHORT_PROCESS;
-			
+			p->time_slice = p->requestedTime;
+
 			if (array)
 				activate_task(p, task_rq(p));
 		}
@@ -1443,7 +1461,7 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	lp.sched_priority = p->rt_priority;
 	
 	if (short_task(p)){		// Os course
-		lp.requested_time = p->requestedTime;
+		lp.requested_time = CHANGE_JIFFIS_TO_MS(p->requestedTime);
 	}
 	
 	read_unlock(&tasklist_lock);

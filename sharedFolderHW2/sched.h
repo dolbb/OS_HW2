@@ -121,14 +121,14 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_RR		2
 #define SCHED_SHORT		5				/* OS course defines */
 #define MIN_REQUESTED_TIME 		1		/* OS course defines */
-#define MAX_REQUESTED_TIME 		3000	/* OS course defines */
-#define INVALID_REQUESTED_TIME 	4000	/* OS course defines */
+#define MAX_REQUESTED_TIME 		CHANGE_MS_TO_JIFFIS(3000)	/* OS course defines */
+#define INVALID_REQUESTED_TIME 	CHANGE_MS_TO_JIFFIS(4000)	/* OS course defines */
 #define OVERDUE_PRIO 			139		/* OS course defines */
 
-#define CHANGE_JIFFIS_TO_HZ(jifs)	\
+#define CHANGE_JIFFIS_TO_MS(jifs)	\
 	jifs * 1000 / HZ
 
-#define CHANGE_HZ_TO_JIFFIS(hez)	\
+#define CHANGE_MS_TO_JIFFIS(hez)	\
 	hez * HZ / 1000
 
 struct sched_param {
@@ -465,9 +465,9 @@ struct task_struct {
 	void *journal_info;
 
 /* OS course additions: */
-	int requestedTime;	//init time for short process.
-	int iAmOverdue;		//0 = normal or just short, 1 = short overdue.
-	int iWasShort;		//was i a short process once? 0 = no, 1 = yes.
+	int requestedTime;	//init time for short process. in jiffs
+	int iAmOverdue;		//0 = normal or just short, 1 = short overdue. 
+	int iWasShort;		//was i a short process once? 0 = no, 1 = yes. 
 	int overdue_static_prio;	//the real static prio of an overdue
 };
 
