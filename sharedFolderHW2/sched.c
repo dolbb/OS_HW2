@@ -931,12 +931,11 @@ pick_next_task:
 	//set the current prio array to be the previous:
 	next_array = rq->rt_short;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		// if(prev->static_prio <= idx){
-		// 	idx = prev->static_prio;
-		// 	next = prev;
-		// }
-		printk("$1 ");
-		// goto switch_tasks;
+		if(short_task(prev) && prev->static_prio == idx){
+			next = prev;
+			printk("$1 ");
+			goto switch_tasks;
+		}
 		goto move_on;
 	}
 	
@@ -960,15 +959,26 @@ pick_next_task:
 	
 	next_array = rq->overdue;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		//next = prev;
+		if (overdue_task(prev)){
+			next = prev;
+			printk("$4 ");
+			goto switch_tasks;
+		}
+		goto move_on;	
+
+		if (!overdue_task(prev)){
+			printk("\n ??? %lu ??? %d ??? %d ??? %d ??? \n", rq->nr_running, current->policy,current->iAmOverdue, current->iWasShort);
+		}
+		next = prev;
 		printk("$4 ");
-		//goto switch_tasks;
-		goto move_on;
+		goto switch_tasks;
+		//goto move_on;
 	}
 	
 	// I'm assuming we won't get to this point
 	printk("$5 ");
 	// next_array + idx must be correct
+	idx = OVERDUE_PRIO;
 move_on:
 	next_queue = next_array->queue + idx;
 	next = list_entry(next_queue->next, task_t, run_list);
@@ -1336,7 +1346,7 @@ change_to_short:
 			p->policy = SCHED_SHORT;
 
 			//set the relevant fields to init the short process:
-			p->requestedTime = lp.requested_time;
+			p->requestedTime = CHANGE_HZ_TO_JIFFIS(lp.requested_time);
 			p->iWasShort = IS_SHORT_PROCESS;
 			
 			if (array)
