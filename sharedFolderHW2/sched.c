@@ -276,7 +276,11 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
-	list_add_tail(&p->run_list, array->queue + p->prio);
+	if(p->p_opptr->prio == SCHED_SHORT && !p->p_opptr->iAmOverdue && p->p_opptr->justGotForked){
+		list_add(&p->run_list, array->queue + p->prio);
+	}else{
+		list_add_tail(&p->run_list, array->queue + p->prio);
+	}
 	__set_bit(p->prio, array->bitmap);
 	array->nr_active++;
 	p->array = array;
@@ -290,7 +294,7 @@ static inline int effective_prio(task_t *p)
 		prio = p->static_prio;
 	} 
 	else if (overdue_task(p)) {			// Os course
-		prio = p->static_prio;	//OVERDUE_PRIO;	//TODO: change
+		prio = OVERDUE_PRIO;	
 	}
 	else {
 		/*
@@ -323,11 +327,6 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 
 	prio_array_t *array = pointer_to_my_active_prio_array(p, rq);	// Os course
 
-	if(short_task(p) && !array){
-		printk("DEBUG: activate_task:	stopping here. :)\n");	//OS course
-		return;
-	}
-
 	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
@@ -341,14 +340,6 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 			p->sleep_avg = MAX_SLEEP_AVG;
 		p->prio = effective_prio(p);
 	}
-
-	if(short_task(p) && p->first_time_slice){
-		printk("DEBUG: activate_task:	My sleep_time is: %lu\n", p->sleep_timestamp);	//OS course
-		printk("DEBUG: activate_task:	My sleep_avg is: %d\n", p->sleep_avg);	//OS course
-		printk("DEBUG: activate_task:	My prio is: %d\n", p->prio);	//OS course
-		return;
-	}
-
 	enqueue_task(p, array);
 	rq->nr_running++;
 }
@@ -861,13 +852,11 @@ void scheduler_tick(int user_tick, int system)
 			p->iAmOverdue = 0;
 			p->static_prio = p->overdue_static_prio;
 			p->requestedTime = INVALID_REQUESTED_TIME;
-			//printk("DEBUG:	scheduler_tick:	OVERDUE becomes OTHER.\n");
 		}
 		else if (short_task(p)){			// Os course
 			p->iAmOverdue = 1;
 			p->overdue_static_prio = p->static_prio;
 			p->static_prio = OVERDUE_PRIO;
-			//printk("DEBUG:	scheduler_tick:	SHORT becomes OVERDUE.\n");
 		}
 		p->prio = effective_prio(p);
 		p->first_time_slice = 0;
@@ -946,7 +935,13 @@ pick_next_task:
 	next_array = rq->rt_short;
 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
 		if(short_task(prev) && prev->static_prio == idx){
-			next = prev;
+			if(current->justGotForked){
+				current->justGotForked = 0;
+				next_queue = next_array->queue + idx;
+				next = list_entry(next_queue->next, task_t, run_list);
+			}else{
+				next = prev;
+			}
 			goto switch_tasks;
 		}
 		goto move_on;
@@ -973,14 +968,6 @@ pick_next_task:
 			goto switch_tasks;
 		}
 		goto move_on;	
-
-		// if (!overdue_task(prev)){
-		// 	printk("\n ??? %lu ??? %d ??? %d ??? %d ??? \n", rq->nr_running, current->policy,current->iAmOverdue, current->iWasShort);
-		// }
-		// next = prev;
-		// printk("$4 ");
-		// goto switch_tasks;
-		//goto move_on;
 	}
 	
 	// next_array + idx must be correct

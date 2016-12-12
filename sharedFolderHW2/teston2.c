@@ -44,10 +44,16 @@ int main() {
 	SET_PARAMS(params, 2, 2500);
 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&params) == 0);
 	assert(sched_getparam(getpid(), (struct sched_param *)&p2) == 0);
-	printf("\n\n???%d???\n\n",p2.requested_time);
 	assert(p2.requested_time == 2500);
 
-	fork();
+	int pid = fork();
+	if(pid == 0){
+		printf("im son\n");
+	}else{
+		printf("im loser\n");
+	}
+	printf("done\n");
+	return 0;
 }
 
 

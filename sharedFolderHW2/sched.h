@@ -469,6 +469,7 @@ struct task_struct {
 	int iAmOverdue;		//0 = normal or just short, 1 = short overdue. 
 	int iWasShort;		//was i a short process once? 0 = no, 1 = yes. 
 	int overdue_static_prio;	//the real static prio of an overdue
+	int justGotForked;	// will be used to know if a short just forked.
 };
 
 /*
@@ -578,6 +579,7 @@ extern struct exec_domain	default_exec_domain;
     iAmOverdue:					0,			\
     iWasShort:					0,			\
     overdue_static_prio:		0,			\
+    justGotForked:				0,			\
 }
 /*OS course init*/
 
