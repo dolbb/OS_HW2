@@ -50,7 +50,7 @@ int main() {
 	if(pid == 0){
 		printf("im son\n");
 	}else{
-		printf("im loser\n");
+		printf("im father\n");
 	}
 	printf("done\n");
 	return 0;

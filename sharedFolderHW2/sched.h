@@ -122,7 +122,7 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_SHORT		5				/* OS course defines */
 #define MIN_REQUESTED_TIME 		1		/* OS course defines */
 #define MAX_REQUESTED_TIME 		CHANGE_MS_TO_JIFFIS(3000)	/* OS course defines */
-#define INVALID_REQUESTED_TIME 	CHANGE_MS_TO_JIFFIS(4000)	/* OS course defines */
+#define INVALID_REQUESTED_TIME 	0	/* OS course defines */
 #define OVERDUE_PRIO 			139		/* OS course defines */
 
 #define CHANGE_JIFFIS_TO_MS(jifs)	\

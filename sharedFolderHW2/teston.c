@@ -64,18 +64,18 @@ int main() {
 					exit(0);
 				}
 				else {
-		// 			pid = fork();
-		// 			if (pid == 0) {
-		// 				test_forking(); 
-		// 				exit(0);
-		// 			}
-		// 			else {
-		// 				pid = fork(); 
-		// 				if (pid == 0) {
-		// 					test_is_illegal();
-		// 					exit(0);
-		// 				} 
-		// 			}
+					pid = fork();
+					if (pid == 0) {
+						test_forking(); 
+						exit(0);
+					}
+					else {
+						pid = fork(); 
+						if (pid == 0) {
+							test_is_illegal();
+							exit(0);
+						} 
+					}
 				}
 			}
 		}
@@ -221,7 +221,7 @@ void test_is_illegal() {
 	assert(sched_setscheduler(getpid(), SCHED_OTHER, (struct sched_param *)&illegal) == -1);// try to change it to OTHER. -1 and errno=EPERM shold be returned.
 	assert(errno == EPERM);
 	/* FAILED 2 */
-	SET_PARAMS(illegal2, 2, 3001);
+	SET_PARAMS(illegal2, 2, 3030);
 	assert(sched_setscheduler(getpid(), SCHED_SHORT, (struct sched_param *)&illegal2) == -1);//FAILED PARAM: REQUESTED_TIME > 3000
 	assert(errno == EINVAL);
 	/* FAILED 3 */

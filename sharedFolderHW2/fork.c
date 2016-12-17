@@ -791,16 +791,22 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	wake_up_forked_process(p);	/* do this last */
 	++total_forks;
 	
-	if(overdue_task(current)){	//TODO: delete
-		goto fork_out;
-	}
-	if (clone_flags & CLONE_VFORK)
+	if (clone_flags & CLONE_VFORK){
 		wait_for_completion(&vfork);
-	else
+	}
+	else{
 		/*
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
 		 */
+		if(overdue_task(current)){	//TODO: delete
+			goto fork_out;
+		}
+
+		current->need_resched = 1;
+	}
+
+	if(short_task(current))
 		current->need_resched = 1;
 
 fork_out:

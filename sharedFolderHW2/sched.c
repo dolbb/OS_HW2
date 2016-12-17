@@ -138,10 +138,12 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, *rt_short, *overdue, arrays[4];	/* OS course */
+	prio_array_t *active, *expired, arrays[2];
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
-	list_t migration_queue;		
+	list_t migration_queue;
+	prio_array_t *rt_short, *overdue, shortArrays[2]; /* OS course */
+
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -276,7 +278,11 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
-	if(p->p_opptr->prio == SCHED_SHORT && !p->p_opptr->iAmOverdue && p->p_opptr->justGotForked){
+	if((current->policy == SCHED_SHORT) && current->justGotForked && 
+			(!p->iAmOverdue) && (p->p_opptr->justGotForked)){
+		p->p_opptr->justGotForked = 0;
+		dequeue_task(p->p_opptr, array);
+		enqueue_task(p->p_opptr, array);
 		list_add(&p->run_list, array->queue + p->prio);
 	}else{
 		list_add_tail(&p->run_list, array->queue + p->prio);
@@ -809,7 +815,7 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if (p->array != pointer_to_my_active_prio_array(p, rq)) {		// Os course
+	if (p->array == rq->expired) {		// Os course
 		set_tsk_need_resched(p);
 		return;
 	}
@@ -887,9 +893,11 @@ asmlinkage void schedule(void)
 {
 	task_t *prev, *next;
 	runqueue_t *rq;
-	prio_array_t *prev_array, *next_array;
+	//prio_array_t *prev_array, *next_array;
+	prio_array_t *array;
 	//list_t *queue;
-	list_t *prev_queue, *next_queue;
+	//list_t *prev_queue, *next_queue;
+	list_t *queue;
 	int idx;
 	int state = 0;
 
@@ -930,50 +938,80 @@ pick_next_task:
 		goto switch_tasks;
 	}
 
-	//OS course : search for next highest prio process:
-	//set the current prio array to be the previous:
-	next_array = rq->rt_short;
-	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		if(short_task(prev) && prev->static_prio == idx){
-			if(current->justGotForked){
-				current->justGotForked = 0;
-				next_queue = next_array->queue + idx;
-				next = list_entry(next_queue->next, task_t, run_list);
-			}else{
-				next = prev;
-			}
-			goto switch_tasks;
-		}
+	array = rq->rt_short;
+	if(array->nr_active){
+		//check just got forked?
+		goto move_on;
+	}
+
+	array = rq->active;
+	if(array->nr_active){
 		goto move_on;
 	}
 	
-	next_array = rq->active;
-	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		goto move_on;
-	}
-	
-	next_array = rq->expired;
-	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		// Switch "expired" and "active"
+	array = rq->expired;
+	if(array->nr_active){
 		rq->expired = rq->active;
-		rq->active = next_array;
+		rq->active = array;
 		rq->expired_timestamp = 0;
 		goto move_on;
 	}
+
+	array = rq->overdue;
+
 	
-	next_array = rq->overdue;
-	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
-		if (overdue_task(prev)){
-			next = prev;
-			goto switch_tasks;
-		}
-		goto move_on;	
-	}
+
+
+
+
+	//OS course : search for next highest prio process:
+	//set the current prio array to be the previous:
+	// next_array = rq->rt_short;
+// 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+// 		if(short_task(prev) && prev->static_prio == idx){
+// 			if(current->justGotForked){
+// 				current->justGotForked = 0;
+// 				next_queue = next_array->queue + idx;
+// 				next = list_entry(next_queue->next, task_t, run_list);
+// 			}else{
+// 				next = prev;
+// 			}
+// 			goto switch_tasks;
+// 		}
+// 		goto move_on;	//	RT
+// 	}
 	
-	// next_array + idx must be correct
+// 	next_array = rq->active;
+// 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+// 		goto move_on;
+// 	}
+	
+// 	next_array = rq->expired;
+// 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+// 		// Switch "expired" and "active"
+// 		rq->expired = rq->active;
+// 		rq->active = next_array;
+// 		rq->expired_timestamp = 0;
+// 		goto move_on;
+// 	}
+	
+// 	next_array = rq->overdue;
+// 	if( (idx = sched_find_first_bit(next_array->bitmap)) < MAX_PRIO){
+// 		if (overdue_task(prev)){
+// 			next = prev;
+// 			goto switch_tasks;
+// 		}
+// 		goto move_on;	
+// 	}
+	
+// 	// next_array + idx must be correct
+// move_on:
+// 	next_queue = array->queue + idx;
+// 	next = list_entry(next_queue->next, task_t, run_list);
 move_on:
-	next_queue = next_array->queue + idx;
-	next = list_entry(next_queue->next, task_t, run_list);
+	idx = sched_find_first_bit(array->bitmap);
+	queue = array->queue + idx;
+	next = list_entry(queue->next, task_t, run_list);
 
 switch_tasks:
 	prefetch(next);
@@ -1304,7 +1342,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//check the current process for being short - OS course code:
 	if(p->policy == SCHED_SHORT){
 		if(policy == SCHED_SHORT){
-			if(CHANGE_MS_TO_JIFFIS(lp.requested_time) <= MAX_REQUESTED_TIME && CHANGE_MS_TO_JIFFIS(lp.requested_time) > p->requestedTime - p->time_slice){
+			if(lp.requested_time <= 3000 && CHANGE_MS_TO_JIFFIS(lp.requested_time) > p->requestedTime - p->time_slice){
 				goto change_to_short;
 			}
 			retval = -EINVAL;
@@ -1324,7 +1362,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		//if we are here than the "p" process is on SCHED_OTHER policy.
 
 		//check the requested running time validity [p->timeslice .. 3000]: 
-		if(CHANGE_MS_TO_JIFFIS(lp.requested_time) > MAX_REQUESTED_TIME || CHANGE_MS_TO_JIFFIS(lp.requested_time) < MIN_REQUESTED_TIME){
+		if(lp.requested_time > 3000 || CHANGE_MS_TO_JIFFIS(lp.requested_time) < MIN_REQUESTED_TIME){
 			retval = -EINVAL;
 			goto out_unlock;
 		}
@@ -1357,6 +1395,7 @@ change_to_short:
 			if (array)
 				activate_task(p, task_rq(p));
 		}
+		set_tsk_need_resched(current);
 		retval = 0;
 		goto out_unlock;
 	}
@@ -1575,7 +1614,7 @@ asmlinkage long sys_sched_yield(void)
 		list_add_tail(&current->run_list, array->queue + current->prio);
 		goto out_unlock;
 	}
-
+	
 	list_del(&current->run_list);
 	if (!list_empty(array->queue + current->prio)) {
 		list_add(&current->run_list, array->queue[current->prio].next);
@@ -1818,13 +1857,23 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
-		rq->rt_short = rq->arrays + 2;
-		rq->overdue = rq->arrays + 3;
+		rq->rt_short = rq->shortArrays;
+		rq->overdue = rq->shortArrays + 1;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
 		
-		for (j = 0; j < 4 ; j++) {
+		for (j = 0; j < 2 ; j++) {
 			array = rq->arrays + j;
+			for (k = 0; k < MAX_PRIO; k++) {
+				INIT_LIST_HEAD(array->queue + k);
+				__clear_bit(k, array->bitmap);
+			}
+			// delimiter for bitsearch
+			__set_bit(MAX_PRIO, array->bitmap);
+		}
+
+		for (j = 0; j < 2 ; j++) {
+			array = rq->shortArrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);
 				__clear_bit(k, array->bitmap);
